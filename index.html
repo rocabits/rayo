@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2ecc71">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%232ecc71'/%3E%3Ctext x='50' y='68' font-size='48' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3ER%3C/text%3E%3C/svg%3E" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>RAYO</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="btn-back" id="btnBack" aria-label="Volver">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <div class="header-brand">
+          <svg class="header-logo" width="32" height="32" viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="45" fill="rgba(255,255,255,0.2)"/>
+            <polygon points="50,15 35,55 50,45 65,55" fill="white"/>
+          </svg>
+          <h1>RAYO</h1>
+        </div>
+      </div>
+      <span class="header-title" id="headerTitle"></span>
+      <span class="header-count" id="playerCount"></span>
+    </div>
+  </header>
+
+  <main>
+    <div class="view" id="viewSeasons">
+      <div class="seasons-grid" id="seasonsGrid"></div>
+    </div>
+    <div class="view" id="viewSeasonMenu">
+      <div class="menu-grid">
+        <button class="menu-card" data-view="plantilla">
+          <svg class="menu-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+            <path d="M16 3.13a4 4 0 010 7.75"/>
+          </svg>
+          <span class="menu-card-title">Plantilla</span>
+          <span class="menu-card-sub">Gestiona tus jugadores</span>
+        </button>
+        <button class="menu-card" data-view="partidos">
+          <svg class="menu-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <circle cx="12" cy="16" r="1.5" fill="var(--primary)"/>
+            <circle cx="16" cy="16" r="1.5" fill="var(--primary)"/>
+            <circle cx="8" cy="16" r="1.5" fill="var(--primary)"/>
+          </svg>
+          <span class="menu-card-title">Calendario</span>
+          <span class="menu-card-sub">Gestiona tus partidos</span>
+        </button>
+        <button class="menu-card" data-view="estadisticas">
+          <svg class="menu-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          <span class="menu-card-title">Estadísticas</span>
+          <span class="menu-card-sub">Consulta el rendimiento</span>
+        </button>
+      </div>
+    </div>
+    <div class="view" id="viewPlantilla">
+      <div class="status-summary" id="statusSummary"></div>
+      <div class="empty-state" id="emptyState">
+        <svg class="empty-icon" width="72" height="72" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#dcdde1" stroke-width="4"/>
+          <circle cx="50" cy="50" r="30" fill="none" stroke="#dcdde1" stroke-width="4"/>
+          <line x1="20" y1="50" x2="80" y2="50" stroke="#dcdde1" stroke-width="4"/>
+        </svg>
+        <p class="empty-title">No hay jugadores</p>
+        <p class="empty-sub">Añade tu primer jugador</p>
+      </div>
+      <div class="players-list" id="playersList"></div>
+    </div>
+    <div class="view" id="viewPartidos">
+      <div class="empty-state" id="matchesEmptyState">
+        <svg class="empty-icon" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#dcdde1" stroke-width="1">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        <p class="empty-title">No hay partidos</p>
+        <p class="empty-sub">Añade tu primer partido</p>
+      </div>
+      <div class="matches-container" id="matchesContainer"></div>
+    </div>
+    <div class="view" id="viewEstadisticas">
+      <div class="stats-tabs" id="statsTypeTabs">
+        <button class="stats-tab active" data-statstype="total">Totales</button>
+        <button class="stats-tab" data-statstype="amistoso">Amistosos</button>
+        <button class="stats-tab" data-statstype="liga">Liga</button>
+        <button class="stats-tab" data-statstype="copa">Copa</button>
+      </div>
+      <div class="team-stats-card" id="teamStatsCard"></div>
+      <div style="overflow-x:auto;padding:0 16px 16px">
+        <table class="stats-table" id="statsTable">
+          <thead>
+            <tr>
+              <th data-sort="name">Jugador</th>
+              <th data-sort="pj">PJ</th>
+              <th data-sort="g">G</th>
+              <th data-sort="e">E</th>
+              <th data-sort="p">P</th>
+              <th data-sort="min">Min</th>
+              <th data-sort="goals">Goles</th>
+              <th data-sort="assists">Asis</th>
+              <th data-sort="yellow">🟨</th>
+              <th data-sort="red">🟥</th>
+              <th data-sort="yellowBad"><span class="icon-strikethrough">🟨</span></th>
+              <th data-sort="redBad"><span class="icon-strikethrough">🟥</span></th>
+            </tr>
+          </thead>
+          <tbody id="statsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <button class="fab" id="fabOpen" aria-label="Añadir">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  </button>
+
+    <div class="modal" id="modal">
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="modal-panel" id="modalPanel">
+      <div class="modal-header">
+        <h2 id="modalTitle">Nuevo jugador</h2>
+        <div class="modal-header-actions">
+          <button class="modal-header-btn modal-header-btn-save" aria-label="Guardar jugador" type="submit" form="playerForm">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+          </button>
+          <button class="modal-close" id="modalClose" aria-label="Cerrar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <form id="playerForm" autocomplete="off">
+        <div class="form-group">
+          <label for="name">Nombre</label>
+          <input type="text" id="name" placeholder="Nombre del jugador" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="position">Posición</label>
+          <div class="select-wrap">
+            <select id="position">
+              <option value="">Seleccionar posición</option>
+              <option value="Portero">Portero</option>
+              <option value="Defensa">Defensa</option>
+              <option value="Medio">Medio</option>
+              <option value="Delantero">Delantero</option>
+              <option value="Delegado">Delegado</option>
+              <option value="Entrenador">Entrenador</option>
+            </select>
+            <svg class="select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#95a5a6" stroke-width="2" stroke-linecap="round">
+              <polyline points="2 4 6 8 10 4"/>
+            </svg>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="number">Dorsal</label>
+          <input type="text" id="number" placeholder="Nº" inputmode="numeric" pattern="[0-9]*" maxlength="2">
+        </div>
+        <div class="form-group">
+          <label for="status">Estado</label>
+          <div class="select-wrap">
+            <select id="status">
+              <option value="disponible">✅ Disponible</option>
+              <option value="no_disponible">🚫 No disponible</option>
+              <option value="lesionado">🤕 Lesionado</option>
+              <option value="sancionado">🟥 Sancionado</option>
+            </select>
+            <svg class="select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#95a5a6" stroke-width="2" stroke-linecap="round">
+              <polyline points="2 4 6 8 10 4"/>
+            </svg>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Pagado</label>
+          <div class="toggle-row">
+            <span class="toggle-label" id="paidLabel">No</span>
+            <button type="button" class="form-toggle" id="paidToggle" aria-label="Pagado" role="switch" aria-checked="false"></button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="playerNotes">Comentarios</label>
+          <textarea id="playerNotes" placeholder="Notas sobre el jugador..." rows="2"></textarea>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modalMatch">
+    <div class="modal-overlay" id="modalMatchOverlay"></div>
+    <div class="modal-panel" id="modalMatchPanel">
+      <div class="modal-header">
+        <h2 id="matchModalTitle">Nuevo partido</h2>
+        <div class="modal-header-actions">
+          <button class="modal-header-btn modal-header-btn-save" id="btnSaveMatch" aria-label="Guardar partido" type="submit" form="matchForm">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+          </button>
+          <button class="modal-close" id="modalMatchClose" aria-label="Cerrar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <form id="matchForm" autocomplete="off">
+        <input type="hidden" id="editMatchId">
+        <div class="form-group">
+          <label for="matchDate">Fecha</label>
+          <input type="date" id="matchDate" required>
+        </div>
+        <div class="form-group">
+          <label for="matchTime">Hora</label>
+          <input type="time" id="matchTime">
+        </div>
+        <div class="form-group">
+          <label for="matchOpponent">Rival</label>
+          <input type="text" id="matchOpponent" placeholder="Nombre del rival" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="matchVenue">Local / Visitante</label>
+            <div class="select-wrap">
+              <select id="matchVenue">
+                <option value="local">Local</option>
+                <option value="visitante">Visitante</option>
+              </select>
+              <svg class="select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#95a5a6" stroke-width="2" stroke-linecap="round">
+                <polyline points="2 4 6 8 10 4"/>
+              </svg>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="matchType">Tipo</label>
+            <div class="select-wrap">
+              <select id="matchType">
+                <option value="amistoso">Amistoso</option>
+                <option value="liga">Liga</option>
+                <option value="copa">Copa</option>
+              </select>
+              <svg class="select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#95a5a6" stroke-width="2" stroke-linecap="round">
+                <polyline points="2 4 6 8 10 4"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="matchField">Campo</label>
+          <input type="text" id="matchField" placeholder="Nombre del campo">
+        </div>
+        <div class="form-group">
+          <label for="matchNotes">Notas</label>
+          <textarea id="matchNotes" placeholder="Notas adicionales..." rows="3"></textarea>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modalCallUp">
+    <div class="modal-overlay" id="modalCallUpOverlay"></div>
+    <div class="modal-panel" id="modalCallUpPanel">
+      <div class="modal-header">
+        <h2 id="callUpTitle">Convocatoria</h2>
+        <div class="modal-header-actions">
+          <button class="modal-header-btn modal-header-btn-save" id="btnSaveCallUp" aria-label="Guardar convocatoria">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+          </button>
+          <button class="modal-header-btn" id="btnResetCallUp" aria-label="Resetear">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6"/>
+              <path d="M14 11v6"/>
+              <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+            </svg>
+          </button>
+          <button class="modal-close" id="modalCallUpClose" aria-label="Cerrar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="callup-toolbar">
+        <div class="callup-counter" id="callUpCounter">Convocados: <strong>0</strong>/17</div>
+        <div class="callup-toolbar-actions">
+          <button class="modal-header-btn" id="btnSelectAll" aria-label="Seleccionar todos">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <polyline points="9 12 11 14 15 10"/>
+            </svg>
+          </button>
+          <button class="modal-header-btn" id="btnDeselectAll" aria-label="Deseleccionar todos" style="font-size:18px;line-height:1">&#x1F6AB;</button>
+        </div>
+      </div>
+      <div class="callup-list" id="callUpList"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalLineup">
+    <div class="modal-overlay" id="modalLineupOverlay"></div>
+    <div class="modal-panel" id="modalLineupPanel">
+      <div class="modal-header">
+        <h2 id="lineupTitle">Editar alineación</h2>
+        <div class="modal-header-actions">
+          <button class="modal-header-btn modal-header-btn-save" id="btnSaveLineup" aria-label="Guardar alineación">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+          </button>
+          <button class="modal-header-btn" id="btnResetLineup" aria-label="Resetear">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6"/>
+              <path d="M14 11v6"/>
+              <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+            </svg>
+          </button>
+          <button class="modal-close" id="modalLineupClose" aria-label="Cerrar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="lineup-controls" id="lineupControls">
+        <div class="lineup-counter">
+          <span class="lineup-label">Defensas</span>
+          <div class="lineup-stepper">
+            <button type="button" class="stepper-btn" data-line="def" data-dir="-1">−</button>
+            <span class="stepper-value" id="lineupDef">4</span>
+            <button type="button" class="stepper-btn" data-line="def" data-dir="1">+</button>
+          </div>
+        </div>
+        <div class="lineup-counter">
+          <span class="lineup-label">Medios</span>
+          <div class="lineup-stepper">
+            <button type="button" class="stepper-btn" data-line="mid" data-dir="-1">−</button>
+            <span class="stepper-value" id="lineupMid">4</span>
+            <button type="button" class="stepper-btn" data-line="mid" data-dir="1">+</button>
+          </div>
+        </div>
+        <div class="lineup-counter">
+          <span class="lineup-label">Delanteros</span>
+          <div class="lineup-stepper">
+            <button type="button" class="stepper-btn" data-line="fwd" data-dir="-1">−</button>
+            <span class="stepper-value" id="lineupFwd">2</span>
+            <button type="button" class="stepper-btn" data-line="fwd" data-dir="1">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="field-wrapper">
+        <div class="football-field" id="footballField">
+          <div class="field-markings"></div>
+          <div class="field-goal-top"></div>
+          <div class="field-goal-bottom"></div>
+          <div class="field-rows" id="fieldRows"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Player picker mini modal -->
+  <div class="modal modal-picker" id="modalPlayerPicker">
+    <div class="modal-overlay" id="modalPlayerPickerOverlay"></div>
+    <div class="modal-panel picker-panel" id="modalPlayerPickerPanel">
+      <div class="modal-header">
+        <h2>Seleccionar jugador</h2>
+        <button class="modal-close" id="modalPickerClose" aria-label="Cerrar">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div id="pickerList" class="picker-list"></div>
+    </div>
+  </div>
+
+  <!-- Match result modal -->
+  <div class="modal" id="modalResult">
+    <div class="modal-overlay" id="modalResultOverlay"></div>
+    <div class="modal-panel" id="modalResultPanel">
+      <div class="modal-header">
+        <h2 id="resultTitle">Editar resultado</h2>
+        <div class="modal-header-actions">
+          <button class="modal-header-btn modal-header-btn-save" id="btnSaveResult" aria-label="Guardar resultado">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+          </button>
+          <button class="modal-header-btn" id="btnResetResult" aria-label="Resetear">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6"/>
+              <path d="M14 11v6"/>
+              <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+            </svg>
+          </button>
+          <button class="modal-close" id="modalResultClose" aria-label="Cerrar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="result-section">
+        <div class="result-score">
+          <div class="result-score-col">
+            <span class="result-score-label">RAYO</span>
+            <div class="lineup-stepper">
+              <button type="button" class="stepper-btn result-stepper" data-target="resultOurGoals" data-dir="-1">−</button>
+              <span class="stepper-value" id="resultOurGoals">0</span>
+              <button type="button" class="stepper-btn result-stepper" data-target="resultOurGoals" data-dir="1">+</button>
+            </div>
+          </div>
+          <div class="result-score-col">
+            <span class="result-score-label" id="resultRivalLabel">Rival</span>
+            <div class="lineup-stepper">
+              <button type="button" class="stepper-btn result-stepper" data-target="resultTheirGoals" data-dir="-1">−</button>
+              <span class="stepper-value" id="resultTheirGoals">0</span>
+              <button type="button" class="stepper-btn result-stepper" data-target="resultTheirGoals" data-dir="1">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-section">
+        <h3 class="result-section-title">Goles</h3>
+        <div id="resultGoalsList"></div>
+        <button type="button" class="btn-add-row" id="addGoalRow">+ Añadir gol</button>
+      </div>
+
+      <div class="result-section">
+        <h3 class="result-section-title">Tarjetas</h3>
+        <div id="resultCardsList"></div>
+        <button type="button" class="btn-add-row" id="addCardRow">+ Añadir tarjeta</button>
+      </div>
+
+      <div class="result-section">
+        <h3 class="result-section-title">Cambios</h3>
+        <div id="resultSubsList"></div>
+        <button type="button" class="btn-add-row" id="addSubRow">+ Añadir cambio</button>
+      </div>
+
+      <div class="result-section">
+        <div class="form-group">
+          <label for="resultNotes">Notas</label>
+          <textarea id="resultNotes" placeholder="Notas del partido..." rows="3"></textarea>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="modal modal-confirm" id="modalConfirm">
+    <div class="modal-overlay" id="modalConfirmOverlay"></div>
+    <div class="modal-panel confirm-panel" id="modalConfirmPanel">
+      <div class="confirm-icon" id="confirmIcon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <div class="confirm-text" id="confirmText">¿Estás seguro?</div>
+      <div class="confirm-actions">
+        <button class="btn-confirm-cancel" id="btnConfirmCancel">Cancelar</button>
+        <button class="btn-confirm-ok" id="btnConfirmOk">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlayToast"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

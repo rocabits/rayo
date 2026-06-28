@@ -1,0 +1,23 @@
+{
+  "name": "Rayo - Gestión de equipo",
+  "short_name": "Rayo",
+  "description": "Gestiona la plantilla de tu equipo de fútbol",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#2ecc71",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
