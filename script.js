@@ -1533,9 +1533,9 @@
       for (var j = 0; j < groups[pos].length; j++) {
         var p = groups[pos][j];
         var badges = [];
-        if (isInLineup(p.id, tempLineup.slots)) badges.push("I");
-        else if (callUps.indexOf(p.id) !== -1) badges.push("C");
-        else badges.push("-");
+        if (isInLineup(p.id, tempLineup.slots)) badges.push("Alineado (I)");
+        else if (callUps.indexOf(p.id) !== -1) badges.push("Convocado (C)");
+        else badges.push("No convocado (-)");
         html += '<div class="picker-item" data-player-id="' + p.id + '">';
         html += '  <div class="picker-item-num">' + (p.number || "—") + '</div>';
         html += '  <div class="picker-item-name">' + escapeHtml(p.name);
@@ -1549,9 +1549,9 @@
       for (var j = 0; j < groups[""].length; j++) {
         var p = groups[""][j];
         var badges = [];
-        if (isInLineup(p.id, tempLineup.slots)) badges.push("I");
-        else if (callUps.indexOf(p.id) !== -1) badges.push("C");
-        else badges.push("-");
+        if (isInLineup(p.id, tempLineup.slots)) badges.push("Alineado (I)");
+        else if (callUps.indexOf(p.id) !== -1) badges.push("Convocado (C)");
+        else badges.push("No convocado (-)");
         html += '<div class="picker-item" data-player-id="' + p.id + '">';
         html += '  <div class="picker-item-num">' + (p.number || "—") + '</div>';
         html += '  <div class="picker-item-name">' + escapeHtml(p.name);
