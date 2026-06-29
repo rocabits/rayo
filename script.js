@@ -165,10 +165,9 @@
         } catch (e) {}
       }
       if (!state || !state.seasons || !state.seasons.length) {
-        var sid = generateId();
         state = {
-          seasons: [{ id: sid, name: "25/26", players: [], matches: [], stats: {} }],
-          activeSeasonId: sid
+          seasons: [],
+          activeSeasonId: null
         };
       }
       saveToStorage();
@@ -271,10 +270,6 @@
   }
 
   function deleteSeason(id) {
-    if (state.seasons.length <= 1) {
-      showToast("No puedes eliminar la \u00FAnica temporada.", "error");
-      return;
-    }
     for (var i = 0; i < state.seasons.length; i++) {
       if (state.seasons[i].id === id) {
         state.seasons.splice(i, 1);
@@ -282,7 +277,7 @@
       }
     }
     if (state.activeSeasonId === id) {
-      state.activeSeasonId = state.seasons[0].id;
+      state.activeSeasonId = state.seasons.length > 0 ? state.seasons[0].id : null;
     }
     saveToStorage();
     renderSeasons();
