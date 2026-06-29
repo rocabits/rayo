@@ -936,7 +936,7 @@
   }
 
   function deleteMatch(id) {
-    var card = elements.matchesContainer.querySelector('[data-id="' + CSS.escape(id) + '"]');
+    var card = elements.matchesContainer.querySelector('.match-card[data-id="' + CSS.escape(id) + '"]');
     var removeFn = function () {
       var idx = -1;
       for (var i = 0; i < matches.length; i++) { if (matches[i].id === id) { idx = i; break; } }
