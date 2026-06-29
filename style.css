@@ -787,15 +787,14 @@ main {
 /* TEAM STATS CARD */
 .team-stats-card {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 12px 16px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .team-stats-item {
-  flex: 0 0 auto;
-  min-width: 54px;
+  flex: 1 1 0%;
+  min-width: 0;
   background: var(--card);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
