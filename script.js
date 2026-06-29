@@ -40,6 +40,10 @@
   var currentView = "seasons";
   var jornadaValue = null;
   var jornadaManuallySet = false;
+  var supabaseClient = null;
+  var currentUserEmail = null;
+  var supabaseChannel = null;
+  var retryTimer = null;
  
   var elements = {
     seasonsGrid: document.getElementById("seasonsGrid"),
@@ -67,6 +71,8 @@
     viewPlantilla: document.getElementById("viewPlantilla"),
     viewPartidos: document.getElementById("viewPartidos"),
     viewEstadisticas: document.getElementById("viewEstadisticas"),
+    viewLogin: document.getElementById("viewLogin"),
+    viewUsuarios: document.getElementById("viewUsuarios"),
     matchesContainer: document.getElementById("matchesContainer"),
     matchesEmptyState: document.getElementById("matchesEmptyState"),
     modalMatch: document.getElementById("modalMatch"),
@@ -187,6 +193,7 @@
 
   function saveToStorage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    supabaseSave();
   }
 
   function generateId() {
@@ -292,6 +299,236 @@
     elements.viewPlantilla.classList.remove("active");
     elements.viewPartidos.classList.remove("active");
     elements.viewEstadisticas.classList.remove("active");
+    elements.viewLogin.classList.remove("active");
+    elements.viewUsuarios.classList.remove("active");
+  }
+
+  /* ────── AUTH ────── */
+
+  function initSupabase() {
+    if (typeof supabase !== 'undefined' && supabase.createClient) {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  }
+
+  function handleGoogleLogin() {
+    if (!supabaseClient) return;
+    supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname
+      }
+    });
+  }
+
+  function checkSession() {
+    if (!supabaseClient) return Promise.resolve(null);
+    return supabaseClient.auth.getSession().then(function (result) {
+      var session = result.data ? result.data.session : null;
+      if (!session) return null;
+      return supabaseClient.from('allowed_emails').select('email').eq('email', session.user.email).maybeSingle().then(function (res) {
+        if (res.data) {
+          currentUserEmail = session.user.email;
+          return session.user.email;
+        }
+        supabaseClient.auth.signOut();
+        showToast('No tienes permiso para acceder', 'error');
+        return null;
+      }).catch(function () {
+        currentUserEmail = session.user.email;
+        return session.user.email;
+      });
+    }).catch(function () {
+      return null;
+    });
+  }
+
+  function showLogin() {
+    currentView = "login";
+    hideAllViews();
+    elements.viewLogin.classList.add("active");
+    document.querySelector('header').style.display = 'none';
+    elements.fabOpen.style.display = "none";
+    document.body.classList.remove("fab-visible");
+  }
+
+  function hideLogin() {
+    document.querySelector('header').style.display = '';
+  }
+
+  /* ────── USUARIOS ────── */
+
+  function showUsuarios() {
+    currentView = "usuarios";
+    hideAllViews();
+    elements.viewUsuarios.classList.add("active");
+    elements.fabOpen.style.display = "flex";
+    document.body.classList.add("fab-visible");
+    renderUsuarios();
+  }
+
+  function renderUsuarios() {
+    if (!supabaseClient) return;
+    supabaseClient.from('allowed_emails').select('email').then(function (res) {
+      var count = 0;
+      var html = "";
+      if (res.data) {
+        var filtered = res.data.filter(function (r) { return r.email !== currentUserEmail; });
+        count = filtered.length;
+        for (var i = 0; i < filtered.length; i++) {
+          html += '<div class="player-card" style="cursor:default">' +
+            '<div class="player-info"><div class="player-name" style="font-size:14px;text-transform:none">' + escapeHtml(filtered[i].email) + '</div></div>' +
+            '<button class="btn-edit" data-email="' + escapeHtml(filtered[i].email) + '" aria-label="Editar usuario">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+            '</button>' +
+            '<button class="btn-delete" data-email="' + escapeHtml(filtered[i].email) + '" aria-label="Eliminar usuario">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>' +
+            '</button></div>';
+        }
+      }
+      document.getElementById("usuariosList").innerHTML = html || '<div class="empty-state" style="padding:40px 24px"><p class="empty-title">No hay usuarios</p><p class="empty-sub">Añade el primer email</p></div>';
+      updateHeader(true, "RAYO: Usuarios (" + count + ")", "");
+    });
+  }
+
+  function openUsuarioModal(email) {
+    document.getElementById("inviteEmail").value = email || "";
+    document.getElementById("editUsuarioEmail").value = email || "";
+    document.getElementById("usuarioModalTitle").textContent = email ? "Editar usuario" : "Nuevo usuario";
+    document.getElementById("modalUsuario").classList.add("open");
+    setTimeout(function () { document.getElementById("inviteEmail").focus(); }, 350);
+  }
+
+  function closeUsuarioModal() {
+    document.getElementById("modalUsuario").classList.remove("open");
+    document.getElementById("editUsuarioEmail").value = "";
+  }
+
+  function saveUsuario() {
+    var input = document.getElementById("inviteEmail");
+    var email = input.value.trim();
+    if (!email || email.indexOf('@') === -1) {
+      showToast('Email no válido', 'error');
+      return;
+    }
+    if (!supabaseClient) return;
+    var oldEmail = document.getElementById("editUsuarioEmail").value;
+    var doInsert = function () {
+      supabaseClient.from('allowed_emails').insert({ email: email }).then(function (res) {
+        if (res.error) {
+          showToast('Error al guardar: ' + res.error.message, 'error');
+        } else {
+          closeUsuarioModal();
+          renderUsuarios();
+          showToast(oldEmail ? 'Usuario actualizado' : 'Usuario añadido', 'success');
+        }
+      });
+    };
+    if (oldEmail && oldEmail !== email) {
+      supabaseClient.from('allowed_emails').delete().eq('email', oldEmail).then(function (res) {
+        if (res.error) {
+          showToast('Error al actualizar', 'error');
+        } else {
+          doInsert();
+        }
+      });
+    } else {
+      doInsert();
+    }
+  }
+
+  function removeUsuario(email) {
+    if (!supabaseClient) return;
+    showConfirm('¿Eliminar a ' + email + '?', function () {
+      supabaseClient.from('allowed_emails').delete().eq('email', email).then(function (res) {
+        if (res.error) {
+          showToast('Error al eliminar', 'error');
+        } else {
+          renderUsuarios();
+          showToast('Usuario eliminado', 'success');
+        }
+      });
+    });
+  }
+
+  /* ────── SUPABASE SYNC ────── */
+
+  function supabaseSave() {
+    if (!supabaseClient || !currentUserEmail) return;
+    var pending = localStorage.getItem('rayo_pending');
+    if (pending) {
+      clearTimeout(retryTimer);
+    }
+    supabaseClient.from('app_data').upsert({
+      id: 'main',
+      data: state,
+      updated_at: new Date().toISOString()
+    }).then(function (res) {
+      if (res.error) {
+        localStorage.setItem('rayo_pending', '1');
+        retryTimer = setTimeout(supabaseSave, 60000);
+      } else {
+        localStorage.removeItem('rayo_pending');
+      }
+    });
+  }
+
+  function supabaseLoad() {
+    if (!supabaseClient || !currentUserEmail) return Promise.resolve(false);
+    var pending = localStorage.getItem('rayo_pending');
+    if (pending) {
+      return supabaseClient.from('app_data').upsert({
+        id: 'main',
+        data: state,
+        updated_at: new Date().toISOString()
+      }).then(function () {
+        localStorage.removeItem('rayo_pending');
+        return true;
+      }).catch(function () {
+        return false;
+      });
+    }
+    return supabaseClient.from('app_data').select('data').eq('id', 'main').maybeSingle().then(function (res) {
+      if (res.data && res.data.data) {
+        state = res.data.data;
+        syncPlayers();
+        syncMatches();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        return true;
+      }
+      return false;
+    }).catch(function () {
+      return false;
+    });
+  }
+
+  function supabaseOnChange(payload) {
+    if (!payload.new || !payload.new.data) return;
+    state = payload.new.data;
+    syncPlayers();
+    syncMatches();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (currentView === "plantilla") renderPlayers();
+    else if (currentView === "partidos") renderMatches();
+    else if (currentView === "estadisticas") renderEstadisticas();
+    else if (currentView === "seasons") renderSeasons();
+  }
+
+  function supabaseSubscribe() {
+    if (!supabaseClient || !currentUserEmail) return;
+    supabaseChannel = supabaseClient.channel('app_data_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'app_data' },
+        supabaseOnChange
+      )
+      .subscribe();
+  }
+
+  function supabaseUnsubscribe() {
+    if (supabaseChannel) {
+      supabaseClient.removeChannel(supabaseChannel);
+      supabaseChannel = null;
+    }
   }
 
   function updateHeader(back, title, count) {
@@ -301,10 +538,11 @@
   }
 
   function showSeasons() {
+    hideLogin();
     currentView = "seasons";
     hideAllViews();
     elements.viewSeasons.classList.add("active");
-    updateHeader(false, "RAYO: Temporadas", "");
+    updateHeader(false, "RAYO: Temporadas (" + state.seasons.length + ")", "");
     elements.fabOpen.style.display = "flex";
     document.body.classList.add("fab-visible");
     renderSeasons();
@@ -362,6 +600,8 @@
       showSeasons();
     } else if (currentView === "plantilla" || currentView === "partidos" || currentView === "estadisticas") {
       showSeasonMenu();
+    } else if (currentView === "usuarios") {
+      showSeasons();
     }
   }
 
@@ -369,7 +609,7 @@
 
   function renderSeasons() {
     elements.seasonsGrid.innerHTML = "";
-    var sorted = state.seasons.slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var sorted = state.seasons.slice().sort(function (a, b) { return b.name.localeCompare(a.name); });
     var frag = document.createDocumentFragment();
 
     for (var i = 0; i < sorted.length; i++) {
@@ -2097,9 +2337,18 @@
   }
 
   function setupEventListeners() {
+    document.getElementById("btnGoogleLogin").addEventListener("click", handleGoogleLogin);
+
+    document.querySelector(".header-logo-btn").addEventListener("click", function () {
+      if (currentUserEmail === "roca.jlr@gmail.com") {
+        showUsuarios();
+      }
+    });
+
     elements.fabOpen.addEventListener("click", function () {
       if (currentView === "plantilla") openModal(null);
       else if (currentView === "partidos") openMatchModal(null);
+      else if (currentView === "usuarios") openUsuarioModal();
       else if (currentView === "seasons") {
         showConfirm("\u00BFCrear nueva temporada?", function () {
           createNewSeason();
@@ -2122,6 +2371,13 @@
 
     elements.modalResultClose.addEventListener("click", closeResultModal);
     elements.modalResultOverlay.addEventListener("click", closeResultModal);
+
+    document.getElementById("modalUsuarioOverlay").addEventListener("click", closeUsuarioModal);
+    document.getElementById("modalUsuarioClose").addEventListener("click", closeUsuarioModal);
+    document.getElementById("usuarioForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      saveUsuario();
+    });
 
     elements.btnSaveResult.addEventListener("click", saveResult);
 
@@ -2234,6 +2490,7 @@
         if (elements.modalLineup.classList.contains("open")) closeLineupModal();
         if (elements.modalPlayerPicker.classList.contains("open")) closePlayerPicker();
         if (elements.modalResult.classList.contains("open")) closeResultModal();
+        if (document.getElementById("modalUsuario").classList.contains("open")) closeUsuarioModal();
       }
     });
 
@@ -2334,6 +2591,16 @@
         openLineupModal(target.dataset.id);
       } else if (e.target.closest(".btn-result")) {
         openResultModal(target.dataset.id);
+      }
+    });
+
+    document.getElementById("usuariosList").addEventListener("click", function (e) {
+      if (e.target.closest(".btn-delete")) {
+        var email = e.target.closest(".btn-delete").dataset.email;
+        if (email) removeUsuario(email);
+      } else if (e.target.closest(".btn-edit")) {
+        var email = e.target.closest(".btn-edit").dataset.email;
+        if (email) openUsuarioModal(email);
       }
     });
 
@@ -2440,9 +2707,28 @@
 
   /* ────── INIT ────── */
 
-  loadFromStorage();
-  migrateJornada();
-  setupEventListeners();
-  showSeasons();
-  registerSW();
+  function init() {
+    initSupabase();
+
+    checkSession().then(function (email) {
+      if (email) {
+        supabaseLoad().then(function (loaded) {
+          if (!loaded) {
+            loadFromStorage();
+          }
+          migrateJornada();
+          supabaseSubscribe();
+          setupEventListeners();
+          showSeasons();
+          registerSW();
+        });
+      } else {
+        showLogin();
+        setupEventListeners();
+        registerSW();
+      }
+    });
+  }
+
+  init();
 })();
