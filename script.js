@@ -313,6 +313,9 @@
 
   function handleGoogleLogin() {
     if (!supabaseClient) return;
+    var btn = document.getElementById("btnGoogleLogin");
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg> Iniciando sesi\u00F3n\u2026';
     supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: {

@@ -2044,7 +2044,7 @@ main {
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
-  padding: 36px 32px 36px;
+  padding: 44px 32px 36px;
   text-align: center;
   animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -2053,14 +2053,14 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 32px;
+  gap: 14px;
+  margin-bottom: 28px;
 }
 
 .login-logo-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
@@ -2069,7 +2069,7 @@ main {
 }
 
 .login-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   color: #fff;
   letter-spacing: -0.3px;
@@ -2099,18 +2099,35 @@ main {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  transition: background 0.2s, border-color 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: box-shadow 0.2s, transform 0.2s, background 0.2s, border-color 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
 
 .btn-google:hover,
 .btn-google:focus-visible {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
   border-color: #fff;
 }
 
 .btn-google:active {
-  transform: scale(0.97);
+  transform: translateY(0) scale(0.97);
   border-color: #fff;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+.btn-google:disabled {
+  opacity: 0.8;
+  cursor: default;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transform: none;
 }
 
 /* DESKTOP */
