@@ -23,7 +23,7 @@
   var MATCH_TYPE_LABELS = {
     liga: "Liga",
     copa: "Copa",
-    amistoso: "Amistoso"
+    amistoso: "Amistosos"
   };
 
   var state = { seasons: [], activeSeasonId: null };
@@ -38,12 +38,13 @@
   var pickerTargetSlot = null;
   var resultTargetMatchId = null;
   var currentView = "seasons";
-
+  var jornadaValue = null;
+  var jornadaManuallySet = false;
+ 
   var elements = {
     seasonsGrid: document.getElementById("seasonsGrid"),
     playersList: document.getElementById("playersList"),
     emptyState: document.getElementById("emptyState"),
-    playerCount: document.getElementById("playerCount"),
     statusSummary: document.getElementById("statusSummary"),
     modal: document.getElementById("modal"),
     modalOverlay: document.getElementById("modalOverlay"),
@@ -79,6 +80,7 @@
     matchOpponent: document.getElementById("matchOpponent"),
     matchVenue: document.getElementById("matchVenue"),
     matchType: document.getElementById("matchType"),
+    matchJornada: document.getElementById("matchJornada"),
     matchField: document.getElementById("matchField"),
     matchNotes: document.getElementById("matchNotes"),
     matchModalTitle: document.getElementById("matchModalTitle"),
@@ -93,6 +95,7 @@
     modalConfirmOverlay: document.getElementById("modalConfirmOverlay"),
     modalConfirmPanel: document.getElementById("modalConfirmPanel"),
     confirmText: document.getElementById("confirmText"),
+    confirmIcon: document.getElementById("confirmIcon"),
     btnConfirmCancel: document.getElementById("btnConfirmCancel"),
     btnConfirmOk: document.getElementById("btnConfirmOk"),
     modalLineup: document.getElementById("modalLineup"),
@@ -299,16 +302,15 @@
     if (back) elements.btnBack.classList.add("visible");
     else elements.btnBack.classList.remove("visible");
     elements.headerTitle.textContent = title || "";
-    elements.playerCount.textContent = count || "";
   }
 
   function showSeasons() {
     currentView = "seasons";
     hideAllViews();
     elements.viewSeasons.classList.add("active");
-    updateHeader(false, "", "");
-    elements.fabOpen.style.display = "none";
-    document.body.classList.remove("fab-visible");
+    updateHeader(false, "RAYO: Temporadas", "");
+    elements.fabOpen.style.display = "flex";
+    document.body.classList.add("fab-visible");
     renderSeasons();
   }
 
@@ -317,7 +319,7 @@
     hideAllViews();
     elements.viewSeasonMenu.classList.add("active");
     var season = getActiveSeason();
-    updateHeader(true, season ? "Temporada " + season.name : "", "");
+    updateHeader(true, "RAYO: " + (season ? season.name : ""), "");
     elements.fabOpen.style.display = "none";
     document.body.classList.remove("fab-visible");
   }
@@ -347,7 +349,7 @@
     hideAllViews();
     elements.viewEstadisticas.classList.add("active");
     var season = getActiveSeason();
-    updateHeader(true, "Temporada " + season.name + " - Estadísticas", "");
+    updateHeader(true, "RAYO: " + season.name + ": Estadísticas", "");
     elements.fabOpen.style.display = "none";
     document.body.classList.remove("fab-visible");
     renderEstadisticas();
@@ -383,30 +385,27 @@
 
       var nameDiv = document.createElement("div");
       nameDiv.className = "season-card-name";
-      nameDiv.textContent = "Temporada " + s.name;
+      nameDiv.textContent = s.name;
 
       var infoDiv = document.createElement("div");
       infoDiv.className = "season-card-info";
       var pCount = s.players ? s.players.filter(function (p) { return STAFF_POSITIONS.indexOf(p.position) === -1; }).length : 0;
       infoDiv.textContent = "\uD83D\uDC65 " + pCount + " jugadores  \uD83C\uDFDF\uFE0F " + ((s.matches && s.matches.length) || 0) + " partidos";
 
-      card.appendChild(nameDiv);
-      card.appendChild(infoDiv);
+      var leftDiv = document.createElement("div");
+      leftDiv.style.cssText = "flex:1;min-width:0;display:flex;flex-direction:column;gap:10px";
+      leftDiv.appendChild(nameDiv);
+      leftDiv.appendChild(infoDiv);
+      card.appendChild(leftDiv);
 
       var delBtn = document.createElement("button");
-      delBtn.className = "season-card-delete";
+      delBtn.className = "btn-delete";
       delBtn.setAttribute("aria-label", "Eliminar temporada");
-      delBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>';
+      delBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>';
       card.appendChild(delBtn);
 
       frag.appendChild(card);
     }
-
-    var newCard = document.createElement("button");
-    newCard.className = "season-card season-card-new";
-    newCard.id = "btnNewSeason";
-    newCard.innerHTML = "<div class=\"season-card-new-icon\">+</div><div class=\"season-card-name\">Nueva temporada</div>";
-    frag.appendChild(newCard);
 
     elements.seasonsGrid.appendChild(frag);
   }
@@ -541,8 +540,7 @@
   function updatePlayerCount() {
     var season = getActiveSeason();
     var total = players.length;
-    elements.headerTitle.textContent = "Temporada " + (season ? season.name : "") + " - Plantilla (" + total + ")";
-    elements.playerCount.textContent = "";
+    elements.headerTitle.textContent = "RAYO: " + (season ? season.name : "") + ": Plantilla (" + total + ")";
   }
 
   function renderPlayers() {
@@ -641,9 +639,8 @@
   function renderMatches() {
     elements.matchesContainer.innerHTML = "";
     var season = getActiveSeason();
-    elements.headerTitle.textContent = "Temporada " + (season ? season.name : "") + " - Calendario (" + matches.length + ")";
-    elements.playerCount.textContent = "";
-    var sorted = matches.slice().sort(function (a, b) { return a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || ""); });
+    elements.headerTitle.textContent = "RAYO: " + (season ? season.name : "") + ": Calendario (" + matches.length + ")";
+    var sorted = matches.slice().sort(function (a, b) { return (a.jornada || 0) - (b.jornada || 0) || a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || ""); });
 
     if (sorted.length === 0) {
       elements.matchesEmptyState.style.display = "flex";
@@ -680,7 +677,7 @@
 
       var heroLabel = document.createElement("div");
       heroLabel.className = "match-hero-label";
-      heroLabel.textContent = "Próximo partido";
+      heroLabel.textContent = getTypeLabel(nm.type).toUpperCase() + ": J" + (nm.jornada || "?");
       heroTop.appendChild(heroLabel);
 
       var heroActions = document.createElement("div");
@@ -734,18 +731,19 @@
 
       var heroOpp = document.createElement("div");
       heroOpp.className = "match-hero-opponent";
-      heroOpp.textContent = nm.opponent;
+      heroOpp.textContent = nm.opponent.toUpperCase();
       heroInfo.appendChild(heroOpp);
 
       if (hr) {
         var heroResult = document.createElement("div");
-        heroResult.style.cssText = "font-size:28px;font-weight:800;margin-bottom:2px";
+        heroResult.style.cssText = "font-size:18px;font-weight:800;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
         if (hr.ourGoals > hr.theirGoals) heroResult.style.color = "#2e7d32";
         else if (hr.ourGoals < hr.theirGoals) heroResult.style.color = "#c62828";
         else heroResult.style.color = "#f57f17";
+        var heroOppUpper = nm.opponent.toUpperCase();
         var heroResultText = nm.venue === "local"
-          ? "RAYO " + hr.ourGoals + " - " + hr.theirGoals + " " + nm.opponent
-          : nm.opponent + " " + hr.theirGoals + " - " + hr.ourGoals + " RAYO";
+          ? "RAYO " + hr.ourGoals + " - " + hr.theirGoals + " " + heroOppUpper
+          : heroOppUpper + " " + hr.theirGoals + " - " + hr.ourGoals + " RAYO";
         heroResult.textContent = heroResultText;
         heroInfo.appendChild(heroResult);
         heroOpp.style.display = "none";
@@ -754,11 +752,6 @@
       var heroMeta = document.createElement("div");
       heroMeta.className = "match-hero-meta";
       heroMeta.style.marginBottom = "0";
-
-      var typeBadge = document.createElement("span");
-      typeBadge.className = "match-badge match-badge-type";
-      typeBadge.textContent = getTypeLabel(nm.type);
-      heroMeta.appendChild(typeBadge);
 
       var venueBadge = document.createElement("span");
       venueBadge.className = "match-badge match-badge-venue";
@@ -813,7 +806,21 @@
       heroInfo.appendChild(heroMeta);
       heroBody.appendChild(heroInfo);
       hero.appendChild(heroBody);
-      frag.appendChild(hero);
+      var heroSection = document.createElement("div");
+      heroSection.className = "position-section";
+      var heroHeader = document.createElement("div");
+      heroHeader.className = "position-header";
+      var heroName = document.createElement("span");
+      heroName.className = "position-name";
+      heroName.textContent = "PRÓXIMO PARTIDO";
+      var heroCount = document.createElement("span");
+      heroCount.className = "position-count";
+      heroCount.textContent = "1";
+      heroHeader.appendChild(heroName);
+      heroHeader.appendChild(heroCount);
+      heroSection.appendChild(heroHeader);
+      heroSection.appendChild(hero);
+      frag.appendChild(heroSection);
     }
 
     var groups = {};
@@ -865,7 +872,23 @@
     elements.matchesContainer.appendChild(frag);
   }
 
-  function addMatch(date, time, opponent, venue, type, field, notes) {
+  function getNextJornada(type, excludeId) {
+    var nums = [];
+    for (var i = 0; i < matches.length; i++) {
+      if (matches[i].id === excludeId) continue;
+      if (matches[i].type === type && matches[i].jornada) {
+        nums.push(matches[i].jornada);
+      }
+    }
+    if (nums.length === 0) return 1;
+    nums.sort(function (a, b) { return a - b; });
+    for (var j = 1; j <= nums.length; j++) {
+      if (nums[j - 1] !== j) return j;
+    }
+    return nums.length + 1;
+  }
+
+  function addMatch(date, time, opponent, venue, type, field, notes, jornada) {
     var match = {
       id: generateId(),
       date: date,
@@ -873,6 +896,7 @@
       opponent: opponent.trim(),
       venue: venue || "local",
       type: type || "amistoso",
+      jornada: jornada || getNextJornada(type),
       field: field || "",
       notes: notes || "",
       callUps: [],
@@ -887,7 +911,7 @@
     renderMatches();
   }
 
-  function updateMatch(id, date, time, opponent, venue, type, field, notes) {
+  function updateMatch(id, date, time, opponent, venue, type, field, notes, jornada) {
     var match = matches.find(function (m) { return m.id === id; });
     if (!match) return;
     match.date = date;
@@ -897,6 +921,7 @@
     match.type = type || "amistoso";
     match.field = field || "";
     match.notes = notes || "";
+    match.jornada = jornada || getNextJornada(match.type);
     var callUps = match.callUps || [];
     if (callUps.length > getCallUpMax(match)) {
       match.callUps = [];
@@ -980,97 +1005,143 @@
       else card.classList.add("match-draw");
     }
 
-    var dateParts = m.date.split("-");
-    var dateDiv = document.createElement("div");
-    dateDiv.className = "match-card-date";
-    dateDiv.innerHTML = '<div class="match-card-day">' + parseInt(dateParts[2], 10) + '</div><div class="match-card-month">' + monthNames[parseInt(dateParts[1], 10) - 1] + '</div>';
-    card.appendChild(dateDiv);
+    var cardTop = document.createElement("div");
+    cardTop.className = "match-card-top";
 
-    var mainDiv = document.createElement("div");
-    mainDiv.className = "match-card-main";
+    var jornadaLabel = document.createElement("div");
+    jornadaLabel.className = "match-hero-label";
+    jornadaLabel.textContent = getTypeLabel(m.type).toUpperCase() + ": J" + (m.jornada || "?");
+    cardTop.appendChild(jornadaLabel);
 
-    var oppDiv = document.createElement("div");
-    oppDiv.className = "match-card-opponent";
-    oppDiv.textContent = m.opponent;
-
-    if (r) {
-      var resultDiv = document.createElement("div");
-      resultDiv.className = "match-card-result";
-      if (r.ourGoals > r.theirGoals) resultDiv.classList.add("result-text-win");
-      else if (r.ourGoals < r.theirGoals) resultDiv.classList.add("result-text-loss");
-      else resultDiv.classList.add("result-text-draw");
-      var resultText = m.venue === "local"
-        ? "RAYO " + r.ourGoals + " - " + r.theirGoals + " " + m.opponent
-        : m.opponent + " " + r.theirGoals + " - " + r.ourGoals + " RAYO";
-      resultDiv.textContent = resultText;
-      mainDiv.appendChild(resultDiv);
-      oppDiv.style.display = "none";
-    }
-
-    mainDiv.appendChild(oppDiv);
-
-    var subDiv = document.createElement("div");
-    subDiv.className = "match-card-sub";
-    var callUps = m.callUps || [];
-    var cards = m.cards || [];
-    var subHtml = '<span class="match-badge match-badge-type">' + getTypeLabel(m.type) + '</span><span class="match-badge match-badge-venue">' + getVenueLabel(m.venue) + '</span><span class="match-badge match-badge-type">' + formatMatchDate(m.date, m.time) + '</span>';
-    if (m.field) subHtml += '<span class="match-badge match-badge-type">' + m.field + '</span>';
-    subHtml += '<span class="match-badge match-badge-venue">' + getCallUpDisplay(callUps, m) + '</span>';
-    var formation = m.lineup ? getFormationStr(m) : "";
-    if (formation) subHtml += '<span class="match-badge match-badge-type">' + formation + '</span>';
-    // card badges
-    var yellowCount = 0, redCount = 0;
-    for (var ci = 0; ci < cards.length; ci++) {
-      if (cards[ci].type === "yellow") yellowCount++;
-      else redCount++;
-    }
-    if (yellowCount > 0) subHtml += '<span class="match-badge match-badge-type">🟨 ' + yellowCount + '</span>';
-    if (redCount > 0) subHtml += '<span class="match-badge match-badge-type">🟥 ' + redCount + '</span>';
-    subDiv.innerHTML = subHtml;
-    mainDiv.appendChild(subDiv);
-
-    card.appendChild(mainDiv);
-
-    var actionsDiv = document.createElement("div");
-    actionsDiv.className = "match-card-actions";
+    var cardActions = document.createElement("div");
+    cardActions.className = "match-card-actions";
 
     var resultBtn = document.createElement("button");
     resultBtn.className = "btn-result";
     resultBtn.setAttribute("aria-label", "Resultado");
     resultBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 9 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 15 7"/><polyline points="9 12 12 10 15 12 12 14 9 12"/><path d="M9 18a2 2 0 012-2h2a2 2 0 012 2"/><path d="M9 18h6v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>';
-    actionsDiv.appendChild(resultBtn);
+    cardActions.appendChild(resultBtn);
 
     var lineupBtn = document.createElement("button");
     lineupBtn.className = "btn-lineup";
     lineupBtn.setAttribute("aria-label", "Alineación");
     lineupBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="9" x2="22" y2="9"/><line x1="2" y1="15" x2="22" y2="15"/></svg>';
-    actionsDiv.appendChild(lineupBtn);
+    cardActions.appendChild(lineupBtn);
 
     var callUpBtn = document.createElement("button");
     callUpBtn.className = "btn-callup";
     callUpBtn.setAttribute("aria-label", "Convocatoria");
     callUpBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
-    actionsDiv.appendChild(callUpBtn);
+    cardActions.appendChild(callUpBtn);
 
     var editBtn = document.createElement("button");
     editBtn.className = "btn-edit";
     editBtn.setAttribute("aria-label", "Editar partido");
     editBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-    actionsDiv.appendChild(editBtn);
+    cardActions.appendChild(editBtn);
 
     var deleteBtn = document.createElement("button");
     deleteBtn.className = "btn-delete";
     deleteBtn.setAttribute("aria-label", "Eliminar partido");
     deleteBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>';
-    actionsDiv.appendChild(deleteBtn);
+    cardActions.appendChild(deleteBtn);
 
-    card.appendChild(actionsDiv);
+    cardTop.appendChild(cardActions);
+    card.appendChild(cardTop);
+
+    var cardBody = document.createElement("div");
+    cardBody.className = "match-card-body";
+
+    var dateParts = m.date.split("-");
+    var dateDiv = document.createElement("div");
+    dateDiv.className = "match-card-date";
+    dateDiv.innerHTML = '<div class="match-card-day">' + parseInt(dateParts[2], 10) + '</div><div class="match-card-month">' + monthNames[parseInt(dateParts[1], 10) - 1] + '</div>';
+    cardBody.appendChild(dateDiv);
+
+    var infoDiv = document.createElement("div");
+    infoDiv.className = "match-card-info";
+
+    var oppDiv = document.createElement("div");
+    oppDiv.className = "match-hero-opponent";
+    oppDiv.textContent = m.opponent.toUpperCase();
+    infoDiv.appendChild(oppDiv);
+
+    if (r) {
+      var resultDiv = document.createElement("div");
+      resultDiv.className = "match-card-result";
+      var oppUpper = m.opponent.toUpperCase();
+      var resultText = m.venue === "local"
+        ? "RAYO " + r.ourGoals + " - " + r.theirGoals + " " + oppUpper
+        : oppUpper + " " + r.theirGoals + " - " + r.ourGoals + " RAYO";
+      resultDiv.textContent = resultText;
+      infoDiv.appendChild(resultDiv);
+      oppDiv.style.display = "none";
+    }
+
+    var metaDiv = document.createElement("div");
+    metaDiv.className = "match-hero-meta";
+
+    var venueB = document.createElement("span");
+    venueB.className = "match-badge match-badge-venue";
+    venueB.textContent = getVenueLabel(m.venue);
+    metaDiv.appendChild(venueB);
+
+    var dtB = document.createElement("span");
+    dtB.className = "match-badge match-badge-type";
+    dtB.textContent = formatMatchDate(m.date, m.time);
+    metaDiv.appendChild(dtB);
+
+    if (m.field) {
+      var fieldB = document.createElement("span");
+      fieldB.className = "match-badge match-badge-type";
+      fieldB.textContent = m.field;
+      metaDiv.appendChild(fieldB);
+    }
+
+    var callUps = m.callUps || [];
+    var cuB = document.createElement("span");
+    cuB.className = "match-badge match-badge-venue";
+    cuB.textContent = getCallUpDisplay(callUps, m);
+    metaDiv.appendChild(cuB);
+
+    var formation = m.lineup ? getFormationStr(m) : "";
+    if (formation) {
+      var formB = document.createElement("span");
+      formB.className = "match-badge match-badge-type";
+      formB.textContent = formation;
+      metaDiv.appendChild(formB);
+    }
+
+    var cards = m.cards || [];
+    var yellowCount = 0, redCount = 0;
+    for (var ci = 0; ci < cards.length; ci++) {
+      if (cards[ci].type === "yellow") yellowCount++;
+      else redCount++;
+    }
+    if (yellowCount > 0) {
+      var yB = document.createElement("span");
+      yB.className = "match-badge match-badge-type";
+      yB.textContent = "🟨 " + yellowCount;
+      metaDiv.appendChild(yB);
+    }
+    if (redCount > 0) {
+      var rB = document.createElement("span");
+      rB.className = "match-badge match-badge-type";
+      rB.textContent = "🟥 " + redCount;
+      metaDiv.appendChild(rB);
+    }
+
+    infoDiv.appendChild(metaDiv);
+    cardBody.appendChild(infoDiv);
+    card.appendChild(cardBody);
+
     return card;
   }
 
   /* ────── MATCH MODAL ────── */
 
   function openMatchModal(match) {
+    jornadaManuallySet = false;
     if (match) {
       editingMatchId = match.id;
       elements.matchModalTitle.textContent = "Editar partido";
@@ -1082,6 +1153,8 @@
       elements.matchType.value = match.type || "amistoso";
       elements.matchField.value = match.field || "";
       elements.matchNotes.value = match.notes || "";
+      elements.matchJornada.value = match.jornada || "";
+      jornadaValue = match.jornada || null;
     } else {
       editingMatchId = null;
       elements.matchModalTitle.textContent = "Nuevo partido";
@@ -1089,6 +1162,8 @@
       elements.editMatchId.value = "";
       var today = new Date().toISOString().slice(0, 10);
       elements.matchDate.value = today;
+      elements.matchJornada.value = getNextJornada(elements.matchType.value, null);
+      jornadaValue = null;
     }
     elements.modalMatch.classList.add("open");
     document.body.style.overflow = "hidden";
@@ -1271,9 +1346,16 @@
 
   var confirmCallback = null;
 
-  function showConfirm(message, onConfirm) {
+  function showConfirm(message, onConfirm, buttonText) {
     confirmCallback = onConfirm;
     elements.confirmText.textContent = message;
+    elements.btnConfirmOk.textContent = buttonText || "Eliminar";
+    elements.btnConfirmOk.classList.toggle("confirm-create", buttonText === "Crear");
+    if (buttonText === "Crear") {
+      elements.confirmIcon.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2ecc71" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    } else {
+      elements.confirmIcon.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    }
     elements.modalConfirm.classList.add("open");
     document.body.style.overflow = "hidden";
   }
@@ -1451,9 +1533,9 @@
       for (var j = 0; j < groups[pos].length; j++) {
         var p = groups[pos][j];
         var badges = [];
-        if (isInLineup(p.id, tempLineup.slots)) badges.push("Alineado");
-        else if (callUps.indexOf(p.id) !== -1) badges.push("Convocado");
-        else badges.push("No convocado");
+        if (isInLineup(p.id, tempLineup.slots)) badges.push("I");
+        else if (callUps.indexOf(p.id) !== -1) badges.push("C");
+        else badges.push("-");
         html += '<div class="picker-item" data-player-id="' + p.id + '">';
         html += '  <div class="picker-item-num">' + (p.number || "—") + '</div>';
         html += '  <div class="picker-item-name">' + escapeHtml(p.name);
@@ -1467,9 +1549,9 @@
       for (var j = 0; j < groups[""].length; j++) {
         var p = groups[""][j];
         var badges = [];
-        if (isInLineup(p.id, tempLineup.slots)) badges.push("Alineado");
-        else if (callUps.indexOf(p.id) !== -1) badges.push("Convocado");
-        else badges.push("No convocado");
+        if (isInLineup(p.id, tempLineup.slots)) badges.push("I");
+        else if (callUps.indexOf(p.id) !== -1) badges.push("C");
+        else badges.push("-");
         html += '<div class="picker-item" data-player-id="' + p.id + '">';
         html += '  <div class="picker-item-num">' + (p.number || "—") + '</div>';
         html += '  <div class="picker-item-name">' + escapeHtml(p.name);
@@ -1539,9 +1621,9 @@
       for (var k in lu.slots) {
         if (lu.slots.hasOwnProperty(k) && lu.slots[k] === p.id) { inLineup = true; break; }
       }
-      if (inLineup) suffix = " (Alineado)";
-      else if (callUps.indexOf(p.id) !== -1) suffix = " (Convocado)";
-      else suffix = " (No convocado)";
+      if (inLineup) suffix = " (I)";
+      else if (callUps.indexOf(p.id) !== -1) suffix = " (C)";
+      else suffix = " (-)";
       result.push({ id: p.id, name: p.name + suffix, number: p.number });
     }
     return result;
@@ -1612,8 +1694,16 @@
         if (fieldName === "type") {
           var typeGroup = row.querySelector("[data-field='type']");
           if (typeGroup) {
-            var activeBtn = typeGroup.querySelector(".result-toggle-btn.active");
+            var activeBtn = typeGroup.querySelector(".result-card-btn.active");
             obj.type = activeBtn ? (activeBtn.dataset.value || "yellow") : "yellow";
+          }
+          continue;
+        }
+        if (fieldName === "reason") {
+          var reasonGroup = row.querySelector("[data-field='type']");
+          if (reasonGroup) {
+            var activeBtn = reasonGroup.querySelector(".result-card-btn.active");
+            obj.reason = activeBtn ? (activeBtn.dataset.reason || "necesaria") : "necesaria";
           }
           continue;
         }
@@ -1664,7 +1754,7 @@
     var btn = document.createElement("button");
     btn.type = "button";
     btn.className = "btn-row-remove";
-    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>';
     btn.addEventListener("click", function () { btn.parentElement.remove(); });
     return btn;
   }
@@ -1692,7 +1782,7 @@
 
     var minIcon = document.createElement("span");
     minIcon.textContent = "\u23F1\uFE0F";
-    minIcon.style.cssText = "font-size:12px;line-height:1";
+    minIcon.style.cssText = "font-size:14px;line-height:1";
     var minInput = makeMinuteInput(data ? data.minute : null);
 
     var assistSel = makePlayerSelect("assistId", data ? data.assistId : null, calledUp);
@@ -1700,8 +1790,8 @@
     div.appendChild(goalIcon);
     div.appendChild(playerSel);
     var assistLabel = document.createElement("span");
-    assistLabel.style.cssText = "font-size:11px;color:var(--text-secondary);font-weight:600";
-    assistLabel.textContent = "🅰️";
+    assistLabel.style.cssText = "font-size:14px;line-height:1";
+    assistLabel.textContent = "🎯";
     div.appendChild(assistLabel);
     div.appendChild(assistSel);
     div.appendChild(minIcon);
@@ -1726,56 +1816,49 @@
 
     var playerSel = makePlayerSelect("playerId", data ? data.playerId : null, calledUp);
 
-    var typeGroup = document.createElement("div");
-    typeGroup.className = "result-toggle-group";
-    var yellowBtn = document.createElement("button");
-    yellowBtn.type = "button";
-    yellowBtn.className = "result-toggle-btn" + ((!data || data.type === "yellow") ? " active" : "");
-    yellowBtn.textContent = "🟨";
-    yellowBtn.dataset.value = "yellow";
-    var redBtn = document.createElement("button");
-    redBtn.type = "button";
-    redBtn.className = "result-toggle-btn" + (data && data.type === "red" ? " active" : "");
-    redBtn.textContent = "🟥";
-    redBtn.dataset.value = "red";
-    typeGroup.appendChild(yellowBtn);
-    typeGroup.appendChild(redBtn);
-    yellowBtn.addEventListener("click", function () { yellowBtn.classList.add("active"); redBtn.classList.remove("active"); });
-    redBtn.addEventListener("click", function () { redBtn.classList.add("active"); yellowBtn.classList.remove("active"); });
-    typeGroup.setAttribute("data-field", "type");
+    var cardGroup = document.createElement("div");
+    cardGroup.className = "result-card-group";
+    cardGroup.setAttribute("data-field", "type");
 
-    var reasonSel = document.createElement("select");
-    reasonSel.setAttribute("data-field", "reason");
-    var reasons = ["necesaria", "innecesaria"];
-    for (var i = 0; i < reasons.length; i++) {
-      var opt = document.createElement("option");
-      opt.value = reasons[i];
-      opt.textContent = reasons[i].charAt(0).toUpperCase() + reasons[i].slice(1);
-      if (data && data.reason === reasons[i]) opt.selected = true;
-      reasonSel.appendChild(opt);
+    function makeCardBtn(label, value, reason, isActive) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "result-card-btn" + (isActive ? " active" : "");
+      btn.dataset.value = value;
+      btn.dataset.reason = reason || "necesaria";
+      if (reason === "innecesaria") {
+        var wrap = document.createElement("span");
+        wrap.className = "icon-strikethrough";
+        wrap.textContent = label;
+        btn.appendChild(wrap);
+      } else {
+        btn.textContent = label;
+      }
+      btn.addEventListener("click", function () {
+        var siblings = cardGroup.querySelectorAll(".result-card-btn");
+        for (var si = 0; si < siblings.length; si++) siblings[si].classList.remove("active");
+        btn.classList.add("active");
+      });
+      return btn;
     }
+
+    var activeType = data ? data.type : "yellow";
+    var activeReason = data ? data.reason : "necesaria";
+
+    cardGroup.appendChild(makeCardBtn("🟨", "yellow", "necesaria", activeType === "yellow" && activeReason === "necesaria"));
+    cardGroup.appendChild(makeCardBtn("🟨", "yellow", "innecesaria", activeType === "yellow" && activeReason === "innecesaria"));
+    cardGroup.appendChild(makeCardBtn("🟥", "red", "necesaria", activeType === "red" && activeReason === "necesaria"));
+    cardGroup.appendChild(makeCardBtn("🟥", "red", "innecesaria", activeType === "red" && activeReason === "innecesaria"));
 
     var minIcon = document.createElement("span");
     minIcon.textContent = "\u23F1\uFE0F";
-    minIcon.style.cssText = "font-size:12px;line-height:1";
+    minIcon.style.cssText = "font-size:14px;line-height:1";
     var minInput = makeMinuteInput(data ? data.minute : null);
 
-    var reasonSel = document.createElement("select");
-    reasonSel.setAttribute("data-field", "reason");
-    var reasons = ["necesaria", "innecesaria"];
-    for (var i = 0; i < reasons.length; i++) {
-      var opt = document.createElement("option");
-      opt.value = reasons[i];
-      opt.textContent = reasons[i].charAt(0).toUpperCase() + reasons[i].slice(1);
-      if (data && data.reason === reasons[i]) opt.selected = true;
-      reasonSel.appendChild(opt);
-    }
-
-    div.appendChild(typeGroup);
+    div.appendChild(cardGroup);
     div.appendChild(playerSel);
     div.appendChild(minIcon);
     div.appendChild(minInput);
-    div.appendChild(reasonSel);
     div.appendChild(makeRemoveButton());
     return div;
   }
@@ -1806,7 +1889,7 @@
 
     var minIcon = document.createElement("span");
     minIcon.textContent = "\u23F1\uFE0F";
-    minIcon.style.cssText = "font-size:12px;line-height:1";
+    minIcon.style.cssText = "font-size:14px;line-height:1";
     var minInput = makeMinuteInput(data ? data.minute : null);
 
     div.appendChild(outIcon);
@@ -2012,6 +2095,11 @@
     elements.fabOpen.addEventListener("click", function () {
       if (currentView === "plantilla") openModal(null);
       else if (currentView === "partidos") openMatchModal(null);
+      else if (currentView === "seasons") {
+        showConfirm("\u00BFCrear nueva temporada?", function () {
+          createNewSeason();
+        }, "Crear");
+      }
     });
     elements.modalClose.addEventListener("click", closeModal);
     elements.modalOverlay.addEventListener("click", closeModal);
@@ -2156,7 +2244,7 @@
     });
 
     elements.seasonsGrid.addEventListener("click", function (e) {
-      var del = e.target.closest(".season-card-delete");
+      var del = e.target.closest(".btn-delete");
       if (del) {
         var card = del.closest(".season-card");
         if (!card) return;
@@ -2168,9 +2256,7 @@
       }
       var card = e.target.closest(".season-card");
       if (!card) return;
-      if (card.classList.contains("season-card-new")) {
-        createNewSeason();
-      } else if (card.dataset.seasonId) {
+      if (card.dataset.seasonId) {
         setActiveSeason(card.dataset.seasonId);
         showSeasonMenu();
       }
@@ -2187,11 +2273,22 @@
       var notes = elements.matchNotes.value.trim();
       if (!date || !opponent) return;
       if (editingMatchId) {
-        updateMatch(editingMatchId, date, time, opponent, venue, type, field, notes);
+        updateMatch(editingMatchId, date, time, opponent, venue, type, field, notes, jornadaValue);
       } else {
-        addMatch(date, time, opponent, venue, type, field, notes);
+        addMatch(date, time, opponent, venue, type, field, notes, jornadaValue);
       }
       closeMatchModal();
+    });
+
+    elements.matchJornada.addEventListener("input", function () {
+      jornadaValue = parseInt(elements.matchJornada.value, 10);
+      jornadaManuallySet = true;
+    });
+    elements.matchType.addEventListener("change", function () {
+      if (jornadaManuallySet) return;
+      var auto = getNextJornada(elements.matchType.value, editingMatchId);
+      elements.matchJornada.value = auto;
+      jornadaValue = auto;
     });
 
     elements.playersList.addEventListener("click", function (e) {
@@ -2296,6 +2393,33 @@
     elements.btnBack.addEventListener("click", handleBack);
   }
 
+  /* ────── MIGRATIONS ────── */
+
+  function migrateJornada() {
+    var changed = false;
+    for (var si = 0; si < state.seasons.length; si++) {
+      var ms = state.seasons[si].matches;
+      var groups = { liga: [], copa: [], amistoso: [] };
+      for (var mi = 0; mi < ms.length; mi++) {
+        var m = ms[mi];
+        if (!m.jornada) {
+          groups[m.type || "amistoso"].push(m);
+        }
+      }
+      for (var t = 0; t < MATCH_TYPE_ORDER.length; t++) {
+        var type = MATCH_TYPE_ORDER[t];
+        var list = groups[type];
+        if (list.length === 0) continue;
+        list.sort(function (a, b) { return a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || ""); });
+        for (var li = 0; li < list.length; li++) {
+          list[li].jornada = li + 1;
+        }
+        changed = true;
+      }
+    }
+    if (changed) saveToStorage();
+  }
+
   /* ────── PWA ────── */
 
   function registerSW() {
@@ -2307,6 +2431,7 @@
   /* ────── INIT ────── */
 
   loadFromStorage();
+  migrateJornada();
   setupEventListeners();
   showSeasons();
   registerSW();

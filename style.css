@@ -72,15 +72,25 @@ header {
 .header-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
-.header-logo {
+.header-logo-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  cursor: default;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn-back.visible + .header-brand .header-logo {
+.btn-back.visible + .header-brand .header-logo-btn {
   display: none;
 }
 
@@ -386,9 +396,13 @@ main {
 }
 
 .match-hero-opponent {
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase !important;
 }
 
 .match-hero-date {
@@ -488,23 +502,16 @@ main {
   border-left: 4px solid #f1c40f;
 }
 
-.match-card-result {
-  font-size: 22px;
-  font-weight: 800;
-  margin-bottom: 2px;
-  line-height: 1.2;
+.match-win.match-card {
+  border-left-color: #2ecc71;
 }
 
-.result-text-win {
-  color: #2e7d32;
+.match-loss.match-card {
+  border-left-color: #e74c3c;
 }
 
-.result-text-loss {
-  color: #c62828;
-}
-
-.result-text-draw {
-  color: #f57f17;
+.match-draw.match-card {
+  border-left-color: #f1c40f;
 }
 
 .btn-result {
@@ -649,27 +656,28 @@ main {
   background: var(--border);
 }
 
-.result-toggle-group {
+.result-card-group {
   display: flex;
-  gap: 4px;
+  gap: 3px;
 }
 
-.result-toggle-btn {
-  width: 32px;
-  height: 28px;
+.result-card-btn {
+  width: 28px;
+  height: 26px;
   border: 2px solid var(--border);
   border-radius: 6px;
   background: var(--card);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.2s, border-color 0.2s;
   -webkit-tap-highlight-color: transparent;
+  padding: 0;
 }
 
-.result-toggle-btn.active {
+.result-card-btn.active {
   border-color: var(--primary);
   background: var(--primary-light);
 }
@@ -684,7 +692,7 @@ main {
 .stats-table th {
   padding: 6px 4px;
   text-align: center;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.2px;
@@ -701,6 +709,12 @@ main {
 .stats-table th:first-child {
   text-align: left;
   min-width: 90px;
+}
+
+.stats-table th[data-sort="min"],
+.stats-table th[data-sort="goals"],
+.stats-table th[data-sort="assists"] {
+  font-size: 14px;
 }
 
 .stats-table td {
@@ -731,10 +745,10 @@ main {
 .icon-strikethrough::after {
   content: "";
   position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: linear-gradient(to top right, transparent 42%, #e74c3c 42%, #e74c3c 58%, transparent 58%);
 }
 
@@ -772,13 +786,16 @@ main {
 
 /* TEAM STATS CARD */
 .team-stats-card {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  display: flex;
   gap: 6px;
   padding: 12px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .team-stats-item {
+  flex: 0 0 auto;
+  min-width: 54px;
   background: var(--card);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
@@ -805,19 +822,67 @@ main {
 .match-card {
   background: var(--card);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  padding: 16px 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 16px;
   animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   transition: box-shadow 0.2s, transform 0.2s;
   position: relative;
   cursor: pointer;
+  border-left: 4px solid transparent;
 }
+
+.match-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.match-card-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.match-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.match-card-result {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.match-win .match-card-result { color: #2e7d32; }
+.match-loss .match-card-result { color: #c62828; }
+.match-draw .match-card-result { color: #f57f17; }
 
 .match-card:active {
   transform: scale(0.98);
+}
+
+@media (max-width: 360px) {
+  .match-card {
+    padding: 16px;
+  }
+  .match-hero {
+    padding: 16px;
+  }
+  .match-card-date {
+    width: 36px;
+  }
+  .match-card-day {
+    font-size: 16px;
+  }
+  .match-card-month {
+    font-size: 9px;
+  }
 }
 
 .match-card.removing {
@@ -844,28 +909,6 @@ main {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-.match-card-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.match-card-opponent {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.match-card-sub {
-  font-size: 12px;
-  color: var(--text-secondary);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
 }
 
 .match-card-actions {
@@ -1111,6 +1154,10 @@ main {
 .btn-confirm-ok {
   background: #e74c3c;
   color: white;
+}
+
+.btn-confirm-ok.confirm-create {
+  background: var(--primary);
 }
 
 .btn-confirm-ok:active {
@@ -1780,44 +1827,13 @@ main {
   border: none;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
   text-align: left;
   font-family: inherit;
   transition: transform 0.2s, box-shadow 0.2s;
   -webkit-tap-highlight-color: transparent;
-  position: relative;
-}
-
-.season-card-delete {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: var(--text-light);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.2s, background 0.2s, color 0.2s;
-}
-
-.season-card:hover .season-card-delete {
-  opacity: 1;
-}
-
-.season-card-delete:hover {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.season-card:active {
-  transform: scale(0.97);
 }
 
 .season-card-name {
@@ -1831,33 +1847,6 @@ main {
   gap: 16px;
   font-size: 13px;
   color: var(--text-secondary);
-}
-
-.season-card-new {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border: 2px dashed var(--border);
-  background: transparent;
-  box-shadow: none;
-  padding: 28px 22px;
-  gap: 6px;
-}
-
-.season-card-new-icon {
-  font-size: 32px;
-  font-weight: 300;
-  color: var(--primary);
-  line-height: 1;
-  margin-bottom: 2px;
-}
-
-.season-card-new .season-card-name {
-  font-size: 16px;
-  color: var(--text-secondary);
-  font-weight: 600;
 }
 
 /* BACK BUTTON */
@@ -2066,10 +2055,7 @@ main {
     box-shadow: var(--shadow);
   }
 
-  .match-card:hover {
-    box-shadow: var(--shadow);
-  }
-
+  .match-card:hover,
   .match-hero:hover {
     box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
