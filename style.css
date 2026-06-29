@@ -784,6 +784,17 @@ main {
   background: var(--primary-light);
 }
 
+.result-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.result-section-header .result-section-title {
+  margin-bottom: 0;
+}
+
 /* TEAM STATS CARD */
 .team-stats-card {
   display: flex;

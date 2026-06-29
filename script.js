@@ -124,6 +124,7 @@
     resultCardsList: document.getElementById("resultCardsList"),
     resultSubsList: document.getElementById("resultSubsList"),
     btnSaveResult: document.getElementById("btnSaveResult"),
+    btnResetScore: document.getElementById("btnResetScore"),
     resultNotes: document.getElementById("resultNotes"),
     statsTableBody: document.getElementById("statsTableBody"),
     statsTypeTabs: document.getElementById("statsTypeTabs"),
@@ -2119,6 +2120,11 @@
     elements.modalResultOverlay.addEventListener("click", closeResultModal);
 
     elements.btnSaveResult.addEventListener("click", saveResult);
+
+    elements.btnResetScore.addEventListener("click", function () {
+      document.getElementById("resultOurGoals").textContent = "0";
+      document.getElementById("resultTheirGoals").textContent = "0";
+    });
 
     document.getElementById("btnResetResult").addEventListener("click", function () {
       var match = matches.find(function (m) { return m.id === resultTargetMatchId; });
