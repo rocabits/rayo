@@ -326,7 +326,7 @@
     return supabaseClient.auth.getSession().then(function (result) {
       var session = result.data ? result.data.session : null;
       if (!session) return null;
-      return supabaseClient.from('allowed_emails').select('email').eq('email', session.user.email).maybeSingle().then(function (res) {
+      return supabaseClient.from('allowed_emails').select('email').in('app_id', ['rayo', 'all']).eq('email', session.user.email).maybeSingle().then(function (res) {
         if (res.data) {
           currentUserEmail = session.user.email;
           return session.user.email;
@@ -369,7 +369,7 @@
 
   function renderUsuarios() {
     if (!supabaseClient) return;
-    supabaseClient.from('allowed_emails').select('email').then(function (res) {
+    supabaseClient.from('allowed_emails').select('email').eq('app_id', 'rayo').then(function (res) {
       var count = 0;
       var html = "";
       if (res.data) {
@@ -414,7 +414,7 @@
     if (!supabaseClient) return;
     var oldEmail = document.getElementById("editUsuarioEmail").value;
     var doInsert = function () {
-      supabaseClient.from('allowed_emails').insert({ email: email }).then(function (res) {
+      supabaseClient.from('allowed_emails').insert({ app_id: 'rayo', email: email }).then(function (res) {
         if (res.error) {
           showToast('Error al guardar: ' + res.error.message, 'error');
         } else {
@@ -425,7 +425,7 @@
       });
     };
     if (oldEmail && oldEmail !== email) {
-      supabaseClient.from('allowed_emails').delete().eq('email', oldEmail).then(function (res) {
+      supabaseClient.from('allowed_emails').delete().eq('app_id', 'rayo').eq('email', oldEmail).then(function (res) {
         if (res.error) {
           showToast('Error al actualizar', 'error');
         } else {
@@ -440,7 +440,7 @@
   function removeUsuario(email) {
     if (!supabaseClient) return;
     showConfirm('¿Eliminar a ' + email + '?', function () {
-      supabaseClient.from('allowed_emails').delete().eq('email', email).then(function (res) {
+      supabaseClient.from('allowed_emails').delete().eq('app_id', 'rayo').eq('email', email).then(function (res) {
         if (res.error) {
           showToast('Error al eliminar', 'error');
         } else {
@@ -460,7 +460,7 @@
       clearTimeout(retryTimer);
     }
     supabaseClient.from('app_data').upsert({
-      id: 'main',
+      app_id: 'rayo',
       data: state,
       updated_at: new Date().toISOString()
     }).then(function (res) {
@@ -478,7 +478,7 @@
     var pending = localStorage.getItem('rayo_pending');
     if (pending) {
       return supabaseClient.from('app_data').upsert({
-        id: 'main',
+        app_id: 'rayo',
         data: state,
         updated_at: new Date().toISOString()
       }).then(function () {
@@ -488,7 +488,7 @@
         return false;
       });
     }
-    return supabaseClient.from('app_data').select('data').eq('id', 'main').maybeSingle().then(function (res) {
+    return supabaseClient.from('app_data').select('data').eq('app_id', 'rayo').maybeSingle().then(function (res) {
       if (res.data && res.data.data) {
         state = res.data.data;
         syncPlayers();
@@ -518,7 +518,7 @@
     if (!supabaseClient || !currentUserEmail) return;
     supabaseChannel = supabaseClient.channel('app_data_changes')
       .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'app_data' },
+        { event: '*', schema: 'public', table: 'app_data', filter: 'app_id=eq.rayo' },
         supabaseOnChange
       )
       .subscribe();
