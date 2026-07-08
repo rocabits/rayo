@@ -102,6 +102,14 @@ header {
 }
 
 .header-help-btn {
+  display: none;
+}
+
+body.view-seasons .header-help-btn {
+  display: flex;
+}
+
+.header-help-btn {
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -110,7 +118,6 @@ header {
   color: white;
   cursor: pointer;
   flex-shrink: 0;
-  display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.2s;

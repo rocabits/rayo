@@ -267,7 +267,7 @@
       return;
     }
     var src = getActiveSeason();
-    var copied = src ? src.players.map(function (p) { return { id: generateId(), name: p.name, position: p.position, number: p.number, status: p.status, paid: !!p.paid, notes: p.notes || "" }; }) : [];
+    var copied = src ? src.players.map(function (p) { return { id: generateId(), name: p.name, position: p.position, number: p.number, status: p.status, paid: false, notes: p.notes || "" }; }) : [];
     var seasonId = generateId();
     state.seasons.push({ id: seasonId, name: name, players: copied, matches: [], stats: {} });
     setActiveSeason(seasonId);
@@ -362,6 +362,7 @@
   /* ────── USUARIOS ────── */
 
   function showUsuarios() {
+    document.body.classList.remove("view-seasons");
     currentView = "usuarios";
     hideAllViews();
     elements.viewUsuarios.classList.add("active");
@@ -548,10 +549,12 @@
     updateHeader(false, "RAYO: Temporadas (" + state.seasons.length + ")", "");
     elements.fabOpen.style.display = "flex";
     document.body.classList.add("fab-visible");
+    document.body.classList.add("view-seasons");
     renderSeasons();
   }
 
   function showSeasonMenu() {
+    document.body.classList.remove("view-seasons");
     currentView = "seasonMenu";
     hideAllViews();
     elements.viewSeasonMenu.classList.add("active");
@@ -562,6 +565,7 @@
   }
 
   function showPlantilla() {
+    document.body.classList.remove("view-seasons");
     currentView = "plantilla";
     hideAllViews();
     elements.viewPlantilla.classList.add("active");
@@ -572,6 +576,7 @@
   }
 
   function showPartidos() {
+    document.body.classList.remove("view-seasons");
     currentView = "partidos";
     hideAllViews();
     elements.viewPartidos.classList.add("active");
@@ -582,6 +587,7 @@
   }
 
   function showEstadisticas() {
+    document.body.classList.remove("view-seasons");
     currentView = "estadisticas";
     hideAllViews();
     elements.viewEstadisticas.classList.add("active");
