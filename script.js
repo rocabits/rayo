@@ -63,6 +63,7 @@
     paidToggle: document.getElementById("paidToggle"),
     paidLabel: document.getElementById("paidLabel"),
     playerNotes: document.getElementById("playerNotes"),
+    playerEmail: document.getElementById("playerEmail"),
     modalTitle: document.getElementById("modalTitle"),
     headerTitle: document.getElementById("headerTitle"),
     btnBack: document.getElementById("btnBack"),
@@ -71,6 +72,7 @@
     viewPlantilla: document.getElementById("viewPlantilla"),
     viewPartidos: document.getElementById("viewPartidos"),
     viewEstadisticas: document.getElementById("viewEstadisticas"),
+    viewPlayerSeason: document.getElementById("viewPlayerSeason"),
     viewLogin: document.getElementById("viewLogin"),
     viewUsuarios: document.getElementById("viewUsuarios"),
     matchesContainer: document.getElementById("matchesContainer"),
@@ -267,7 +269,7 @@
       return;
     }
     var src = getActiveSeason();
-    var copied = src ? src.players.map(function (p) { return { id: generateId(), name: p.name, position: p.position, number: p.number, status: p.status, paid: false, notes: p.notes || "" }; }) : [];
+    var copied = src ? src.players.map(function (p) { return { id: generateId(), name: p.name, position: p.position, number: p.number, status: p.status, paid: false, email: p.email || "", notes: p.notes || "" }; }) : [];
     var seasonId = generateId();
     state.seasons.push({ id: seasonId, name: name, players: copied, matches: [], stats: {} });
     setActiveSeason(seasonId);
@@ -301,6 +303,7 @@
     elements.viewEstadisticas.classList.remove("active");
     elements.viewLogin.classList.remove("active");
     elements.viewUsuarios.classList.remove("active");
+    elements.viewPlayerSeason.classList.remove("active");
   }
 
   /* ────── AUTH ────── */
@@ -555,13 +558,112 @@
 
   function showSeasonMenu() {
     document.body.classList.remove("view-seasons");
+    if (currentUserEmail !== "roca.jlr@gmail.com") {
+      var season = getActiveSeason();
+      if (season && season.players) {
+        var found = null;
+        for (var i = 0; i < season.players.length; i++) {
+          if (season.players[i].email === currentUserEmail) {
+            found = season.players[i];
+            break;
+          }
+        }
+        if (found && STAFF_POSITIONS.indexOf(found.position) === -1) {
+          showPlayerSeasonView(found);
+          return;
+        }
+      }
+    }
     currentView = "seasonMenu";
     hideAllViews();
     elements.viewSeasonMenu.classList.add("active");
+    updateHeader(true, "RAYO: " + (season ? season.name : ""), "");
+    elements.fabOpen.style.display = "none";
+    document.body.classList.remove("fab-visible");
+  }
+
+  function showPlayerSeasonView(player) {
+    currentView = "playerSeason";
+    hideAllViews();
+    elements.viewPlayerSeason.classList.add("active");
     var season = getActiveSeason();
     updateHeader(true, "RAYO: " + (season ? season.name : ""), "");
     elements.fabOpen.style.display = "none";
     document.body.classList.remove("fab-visible");
+    var content = document.getElementById("playerSeasonContent");
+    if (!player) {
+      content.innerHTML = '<div class="empty-state" style="padding:40px 24px"><p class="empty-title">No est\u00E1s registrado</p><p class="empty-sub">No se ha encontrado un jugador con tu email en esta temporada</p></div>';
+      return;
+    }
+    if (player.status === "sancionado") {
+      content.innerHTML = '<div class="empty-state" style="padding:40px 24px"><p class="empty-title">Est\u00E1s sancionado</p><p class="empty-sub">No puedes confirmar disponibilidad para el pr\u00F3ximo partido</p></div>';
+      return;
+    }
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var todayStr = today.toISOString().slice(0, 10);
+    var sorted = matches.slice().sort(function (a, b) {
+      return a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || "");
+    });
+    var nextMatch = null;
+    for (var i = 0; i < sorted.length; i++) {
+      if (sorted[i].date >= todayStr) { nextMatch = sorted[i]; break; }
+    }
+    if (!nextMatch) {
+      content.innerHTML = '<div class="empty-state" style="padding:40px 24px"><p class="empty-title">No hay pr\u00F3ximos partidos</p><p class="empty-sub">Tus datos de estado se guardar\u00E1n para cuando haya un pr\u00F3ximo partido</p></div>';
+      return;
+    }
+    var monthNames = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+    var parts = nextMatch.date.split("-");
+    var cfg = STATUS_CONFIG[player.status] || STATUS_CONFIG.disponible;
+    var html = "";
+    html += '<div class="position-section">';
+    html += '<div class="position-header"><span class="position-name">PR\u00D3XIMO PARTIDO</span><span class="position-count">1</span></div>';
+    html += '<div class="match-hero">';
+    html += '<div style="display:flex;align-items:center;gap:14px">';
+    html += '<div class="match-card-date">';
+    html += '<div class="match-card-day">' + parseInt(parts[2], 10) + '</div>';
+    html += '<div class="match-card-month">' + monthNames[parseInt(parts[1], 10) - 1] + '</div>';
+    html += '</div>';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div class="match-hero-opponent">' + nextMatch.opponent.toUpperCase() + '</div>';
+    html += '<div class="match-hero-meta" style="margin-bottom:0">';
+    html += '<span class="match-badge match-badge-venue">' + getVenueLabel(nextMatch.venue) + '</span>';
+    html += '<span class="match-badge match-badge-type">' + formatMatchDate(nextMatch.date, nextMatch.time) + '</span>';
+    if (nextMatch.field) {
+      html += '<span class="match-badge match-badge-type">' + escapeHtml(nextMatch.field) + '</span>';
+    }
+    html += '</div>';
+    html += '<div style="margin-top:8px"><span class="player-status-badge" style="background:' + cfg.bg + ";color:" + cfg.color + '">' + cfg.icon + " " + cfg.label + '</span></div>';
+    html += '</div></div></div>';
+    html += '</div>';
+    html += '<div class="player-status-row">';
+    var statuses = [
+      { value: "disponible", label: "Disponible", icon: "\u2705", bg: "#e8f5e9", color: "#2e7d32" },
+      { value: "no_disponible", label: "No disponible", icon: "\uD83D\uDEAB", bg: "#ffebee", color: "#c62828" },
+      { value: "lesionado", label: "Lesionado", icon: "\uD83E\uDD15", bg: "#fff3e0", color: "#e65100" }
+    ];
+    for (var s = 0; s < statuses.length; s++) {
+      var st = statuses[s];
+      var active = player.status === st.value;
+      html += '<button class="player-status-btn' + (active ? " active" : "") + '" data-status="' + st.value + '" style="background:' + (active ? st.bg : "#f5f5f5") + ";color:" + (active ? st.color : "#666") + '">' + st.icon + " " + st.label + "</button>";
+    }
+    html += "</div>";
+    content.innerHTML = html;
+    var btns = content.querySelectorAll(".player-status-btn");
+    for (var b = 0; b < btns.length; b++) {
+      (function (btn) {
+        btn.addEventListener("click", function () {
+          var ns = btn.dataset.status;
+          if (player.status === ns) return;
+          player.status = ns;
+          saveToStorage();
+          showPlayerSeasonView(player);
+          var label = STATUS_CONFIG[ns] ? STATUS_CONFIG[ns].label : ns;
+          showToast("Estado actualizado: " + label, "success");
+        });
+      })(btns[b]);
+    }
   }
 
   function showPlantilla() {
@@ -615,7 +717,7 @@
   }
 
   function handleBack() {
-    if (currentView === "seasonMenu") {
+    if (currentView === "seasonMenu" || currentView === "playerSeason") {
       showSeasons();
     } else if (currentView === "plantilla" || currentView === "partidos" || currentView === "estadisticas") {
       showSeasonMenu();
@@ -733,6 +835,13 @@
     }
     infoDiv.appendChild(paidBadge);
 
+    if (player.email) {
+      var emailBadge = document.createElement("span");
+      emailBadge.className = "player-email-badge";
+      emailBadge.textContent = "📧";
+      infoDiv.appendChild(emailBadge);
+    }
+
     var editBtn = document.createElement("button");
     editBtn.className = "btn-edit";
     editBtn.setAttribute("aria-label", "Editar " + player.name);
@@ -836,14 +945,14 @@
     elements.playersList.appendChild(frag);
   }
 
-  function addPlayer(name, position, number, status, paid, notes) {
-    var player = { id: generateId(), name: name.trim(), position: position || "", number: number || "", status: status || "disponible", paid: !!paid, notes: notes || "" };
+  function addPlayer(name, position, number, status, paid, email, notes) {
+    var player = { id: generateId(), name: name.trim(), position: position || "", number: number || "", status: status || "disponible", paid: !!paid, email: email || "", notes: notes || "" };
     players.push(player);
     saveToStorage();
     renderPlayers();
   }
 
-  function updatePlayer(id, name, position, number, status, paid, notes) {
+  function updatePlayer(id, name, position, number, status, paid, email, notes) {
     var player = players.find(function (p) { return p.id === id; });
     if (!player) return;
     player.name = name.trim();
@@ -851,6 +960,7 @@
     player.number = number || "";
     player.status = status || "disponible";
     player.paid = !!paid;
+    player.email = email || "";
     player.notes = notes || "";
     saveToStorage();
     renderPlayers();
@@ -1229,12 +1339,14 @@
       elements.numberInput.value = player.number || "";
       elements.statusSelect.value = player.status || "disponible";
       setPaidToggle(player.paid);
+      elements.playerEmail.value = player.email || "";
       elements.playerNotes.value = player.notes || "";
     } else {
       editingId = null;
       elements.modalTitle.textContent = "Nuevo jugador";
       elements.playerForm.reset();
       setPaidToggle(false);
+      elements.playerEmail.value = "";
       elements.playerNotes.value = "";
     }
     elements.modal.classList.add("open");
@@ -2541,9 +2653,9 @@
       var name = elements.nameInput.value.trim();
       if (!name) return;
       if (editingId) {
-        updatePlayer(editingId, name, elements.positionSelect.value, elements.numberInput.value.trim(), elements.statusSelect.value, elements.paidToggle.classList.contains("active"), elements.playerNotes.value.trim());
+        updatePlayer(editingId, name, elements.positionSelect.value, elements.numberInput.value.trim(), elements.statusSelect.value, elements.paidToggle.classList.contains("active"), elements.playerEmail.value.trim(), elements.playerNotes.value.trim());
       } else {
-        addPlayer(name, elements.positionSelect.value, elements.numberInput.value.trim(), elements.statusSelect.value, elements.paidToggle.classList.contains("active"), elements.playerNotes.value.trim());
+        addPlayer(name, elements.positionSelect.value, elements.numberInput.value.trim(), elements.statusSelect.value, elements.paidToggle.classList.contains("active"), elements.playerEmail.value.trim(), elements.playerNotes.value.trim());
       }
       closeModal();
     });

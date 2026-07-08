@@ -241,6 +241,51 @@ main {
   margin-left: 6px;
 }
 
+.player-email-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  margin-left: 6px;
+  cursor: help;
+}
+
+#viewPlayerSeason {
+  padding: 8px 0;
+}
+
+.player-status-row {
+  display: flex;
+  gap: 10px;
+  padding: 16px 0;
+  flex-wrap: wrap;
+}
+
+.player-status-btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 12px 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+  background: #f5f5f5;
+  color: #666;
+}
+
+.player-status-btn:hover {
+  border-color: #2ecc71;
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.player-status-btn.active {
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, .2);
+}
+
 /* PLAYER SECTIONS */
 .players-list {
   display: flex;
