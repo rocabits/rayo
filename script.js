@@ -42,6 +42,7 @@
   var jornadaManuallySet = false;
   var supabaseClient = null;
   var currentUserEmail = null;
+  var currentUserIsSuperuser = false;
   var supabaseChannel = null;
   var retryTimer = null;
  
@@ -147,11 +148,9 @@
       try { state = JSON.parse(raw); } catch (e) { state = null; }
     }
     if (state && state.seasons && state.seasons.length) {
-      var currentYear = new Date().getFullYear() % 100;
       state.seasons = state.seasons.filter(function (s) {
-        if (s.name === "26/27") return false;
         var m = s.name.match(/^(\d+)\//);
-        return m && parseInt(m[1], 10) <= currentYear;
+        return m && parseInt(m[1], 10) >= 20;
       });
       if (!state.seasons.length) state = null;
     }
@@ -332,9 +331,23 @@
     return supabaseClient.auth.getSession().then(function (result) {
       var session = result.data ? result.data.session : null;
       if (!session) return null;
-      return supabaseClient.from('allowed_emails').select('email').in('app_id', ['rayo', 'all']).eq('email', session.user.email).maybeSingle().then(function (res) {
-        if (res.data) {
+      return supabaseClient.from('allowed_emails').select('email, app_id').eq('email', session.user.email).then(function (res) {
+        if (res.data && res.data.length > 0) {
+          var hasAccess = false;
+          var foundAll = false;
+          for (var i = 0; i < res.data.length; i++) {
+            if (res.data[i].app_id === 'rayo') hasAccess = true;
+            if (res.data[i].app_id === 'all') { hasAccess = true; foundAll = true; }
+          }
+          if (hasAccess) {
+            currentUserEmail = session.user.email;
+            currentUserIsSuperuser = foundAll;
+            return session.user.email;
+          }
+        }
+        if (res.error) {
           currentUserEmail = session.user.email;
+          currentUserIsSuperuser = false;
           return session.user.email;
         }
         supabaseClient.auth.signOut();
@@ -342,6 +355,7 @@
         return null;
       }).catch(function () {
         currentUserEmail = session.user.email;
+        currentUserIsSuperuser = false;
         return session.user.email;
       });
     }).catch(function () {
@@ -385,6 +399,9 @@
         for (var i = 0; i < filtered.length; i++) {
           html += '<div class="player-card" style="cursor:default">' +
             '<div class="player-info"><div class="player-name" style="font-size:14px;text-transform:none">' + escapeHtml(filtered[i].email) + '</div></div>' +
+            '<button class="btn-copy" data-email="' + escapeHtml(filtered[i].email) + '" aria-label="Copiar email">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
+            '</button>' +
             '<button class="btn-edit" data-email="' + escapeHtml(filtered[i].email) + '" aria-label="Editar usuario">' +
             '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
             '</button>' +
@@ -518,7 +535,14 @@
     if (currentView === "plantilla") renderPlayers();
     else if (currentView === "partidos") renderMatches();
     else if (currentView === "estadisticas") renderEstadisticas();
-    else if (currentView === "seasons") renderSeasons();
+    else if (currentView === "seasons" && !document.body.classList.contains("limited")) renderSeasons();
+    else if (currentView === "playerSeason") {
+      var p = null;
+      for (var i = 0; i < players.length; i++) {
+        if (players[i].email === currentUserEmail) { p = players[i]; break; }
+      }
+      if (p) showPlayerSeasonView(p);
+    }
   }
 
   function supabaseSubscribe() {
@@ -544,8 +568,54 @@
     elements.headerTitle.textContent = title || "";
   }
 
+  function getCurrentUserAccessLevel() {
+    if (currentUserIsSuperuser) return "full";
+    var newest = null;
+    for (var si = 0; si < state.seasons.length; si++) {
+      var s = state.seasons[si];
+      if (!newest || s.name > newest.name) newest = s;
+    }
+    if (newest && newest.players) {
+      for (var pi = 0; pi < newest.players.length; pi++) {
+        var p = newest.players[pi];
+        if (p.email === currentUserEmail) {
+          if (p.position === "Entrenador" || p.position === "Delegado") return "full";
+          return "limited";
+        }
+      }
+    }
+    return "limited";
+  }
+
   function showSeasons() {
     hideLogin();
+    document.body.classList.remove("limited");
+    var accessLevel = getCurrentUserAccessLevel();
+    if (accessLevel === "limited") {
+      var newest = null;
+      for (var si = 0; si < state.seasons.length; si++) {
+        var s = state.seasons[si];
+        if (!newest || s.name > newest.name) newest = s;
+      }
+      if (newest) {
+        setActiveSeason(newest.id);
+        var found = null;
+        for (var pi = 0; pi < players.length; pi++) {
+          if (players[pi].email === currentUserEmail) { found = players[pi]; break; }
+        }
+        if (found) { showPlayerSeasonView(found); return; }
+      }
+      currentView = "seasons";
+      hideAllViews();
+      elements.viewSeasons.classList.add("active");
+      updateHeader(false, "RAYO", "");
+      elements.fabOpen.style.display = "none";
+      document.body.classList.remove("fab-visible");
+      document.body.classList.add("view-seasons");
+      document.body.classList.add("limited");
+      elements.seasonsGrid.innerHTML = '<div class="empty-state" style="padding:40px 24px"><p class="empty-title">Acceso restringido</p><p class="empty-sub">Tu usuario no est\u00E1 asignado a ning\u00FAn jugador. Pide al entrenador que te lo asigne.</p></div>';
+      return;
+    }
     currentView = "seasons";
     hideAllViews();
     elements.viewSeasons.classList.add("active");
@@ -558,26 +628,11 @@
 
   function showSeasonMenu() {
     document.body.classList.remove("view-seasons");
-    if (currentUserEmail !== "roca.jlr@gmail.com") {
-      var season = getActiveSeason();
-      if (season && season.players) {
-        var found = null;
-        for (var i = 0; i < season.players.length; i++) {
-          if (season.players[i].email === currentUserEmail) {
-            found = season.players[i];
-            break;
-          }
-        }
-        if (found && STAFF_POSITIONS.indexOf(found.position) === -1) {
-          showPlayerSeasonView(found);
-          return;
-        }
-      }
-    }
     currentView = "seasonMenu";
     hideAllViews();
     elements.viewSeasonMenu.classList.add("active");
-    updateHeader(true, "RAYO: " + (season ? season.name : ""), "");
+    var activeSeason = getActiveSeason();
+    updateHeader(true, "RAYO: " + (activeSeason ? activeSeason.name : ""), "");
     elements.fabOpen.style.display = "none";
     document.body.classList.remove("fab-visible");
   }
@@ -586,8 +641,9 @@
     currentView = "playerSeason";
     hideAllViews();
     elements.viewPlayerSeason.classList.add("active");
+    document.body.classList.add("view-seasons");
     var season = getActiveSeason();
-    updateHeader(true, "RAYO: " + (season ? season.name : ""), "");
+    updateHeader(false, "RAYO: " + (season ? season.name : ""), "");
     elements.fabOpen.style.display = "none";
     document.body.classList.remove("fab-visible");
     var content = document.getElementById("playerSeasonContent");
@@ -595,10 +651,7 @@
       content.innerHTML = '<div class="empty-state" style="padding:40px 24px"><p class="empty-title">No est\u00E1s registrado</p><p class="empty-sub">No se ha encontrado un jugador con tu email en esta temporada</p></div>';
       return;
     }
-    if (player.status === "sancionado") {
-      content.innerHTML = '<div class="empty-state" style="padding:40px 24px"><p class="empty-title">Est\u00E1s sancionado</p><p class="empty-sub">No puedes confirmar disponibilidad para el pr\u00F3ximo partido</p></div>';
-      return;
-    }
+    var canEditStatus = player.status !== "sancionado";
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     var todayStr = today.toISOString().slice(0, 10);
@@ -609,56 +662,142 @@
     for (var i = 0; i < sorted.length; i++) {
       if (sorted[i].date >= todayStr) { nextMatch = sorted[i]; break; }
     }
-    if (!nextMatch) {
-      content.innerHTML = '<div class="empty-state" style="padding:40px 24px"><p class="empty-title">No hay pr\u00F3ximos partidos</p><p class="empty-sub">Tus datos de estado se guardar\u00E1n para cuando haya un pr\u00F3ximo partido</p></div>';
-      return;
-    }
     var monthNames = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
-    var parts = nextMatch.date.split("-");
     var cfg = STATUS_CONFIG[player.status] || STATUS_CONFIG.disponible;
     var html = "";
     html += '<div class="position-section">';
-    html += '<div class="position-header"><span class="position-name">PR\u00D3XIMO PARTIDO</span><span class="position-count">1</span></div>';
-    html += '<div class="match-hero">';
-    html += '<div style="display:flex;align-items:center;gap:14px">';
-    html += '<div class="match-card-date">';
-    html += '<div class="match-card-day">' + parseInt(parts[2], 10) + '</div>';
-    html += '<div class="match-card-month">' + monthNames[parseInt(parts[1], 10) - 1] + '</div>';
-    html += '</div>';
-    html += '<div style="flex:1;min-width:0">';
-    html += '<div class="match-hero-opponent">' + nextMatch.opponent.toUpperCase() + '</div>';
-    html += '<div class="match-hero-meta" style="margin-bottom:0">';
-    html += '<span class="match-badge match-badge-venue">' + getVenueLabel(nextMatch.venue) + '</span>';
-    html += '<span class="match-badge match-badge-type">' + formatMatchDate(nextMatch.date, nextMatch.time) + '</span>';
-    if (nextMatch.field) {
-      html += '<span class="match-badge match-badge-type">' + escapeHtml(nextMatch.field) + '</span>';
+    html += '<div class="position-header"><span class="position-name">ESTADO</span><span class="position-count">1</span></div>';
+    if (canEditStatus) {
+      html += '<div class="player-status-row">';
+      var statuses = [
+        { value: "disponible", label: "Disponible", icon: "\u2705", bg: "#e8f5e9", color: "#2e7d32" },
+        { value: "no_disponible", label: "No disponible", icon: "\uD83D\uDEAB", bg: "#ffebee", color: "#c62828" },
+        { value: "lesionado", label: "Lesionado", icon: "\uD83E\uDD15", bg: "#fff3e0", color: "#e65100" }
+      ];
+      for (var s = 0; s < statuses.length; s++) {
+        var st = statuses[s];
+        var active = player.status === st.value;
+        html += '<button class="player-status-btn' + (active ? " active" : "") + '" data-status="' + st.value + '" style="background:' + (active ? st.bg : "#f5f5f5") + ";color:" + (active ? st.color : "#666") + '">' + st.icon + " " + st.label + "</button>";
+      }
+      html += "</div>";
+    } else {
+      html += '<div class="player-status-row" style="justify-content:center"><span class="player-status-badge" style="background:#f5f5f5;color:#999;font-size:14px;padding:6px 16px">\u26D4 Sancionado</span></div>';
     }
     html += '</div>';
-    html += '<div style="margin-top:8px"><span class="player-status-badge" style="background:' + cfg.bg + ";color:" + cfg.color + '">' + cfg.icon + " " + cfg.label + '</span></div>';
-    html += '</div></div></div>';
-    html += '</div>';
-    html += '<div class="player-status-row">';
-    var statuses = [
-      { value: "disponible", label: "Disponible", icon: "\u2705", bg: "#e8f5e9", color: "#2e7d32" },
-      { value: "no_disponible", label: "No disponible", icon: "\uD83D\uDEAB", bg: "#ffebee", color: "#c62828" },
-      { value: "lesionado", label: "Lesionado", icon: "\uD83E\uDD15", bg: "#fff3e0", color: "#e65100" }
-    ];
-    for (var s = 0; s < statuses.length; s++) {
-      var st = statuses[s];
-      var active = player.status === st.value;
-      html += '<button class="player-status-btn' + (active ? " active" : "") + '" data-status="' + st.value + '" style="background:' + (active ? st.bg : "#f5f5f5") + ";color:" + (active ? st.color : "#666") + '">' + st.icon + " " + st.label + "</button>";
+    if (nextMatch) {
+      var r = nextMatch.result;
+      html += '<div class="position-section">';
+      html += '<div class="position-header"><span class="position-name">PR\u00D3XIMO PARTIDO</span><span class="position-count">1</span></div>';
+      html += '<div class="match-card' + (r ? (r.ourGoals > r.theirGoals ? " match-win" : r.ourGoals < r.theirGoals ? " match-loss" : " match-draw") : "") + '">';
+      html += '<div class="match-card-top">';
+      html += '<div class="match-hero-label">' + getTypeLabel(nextMatch.type).toUpperCase() + ": J" + (nextMatch.jornada || "?") + '</div>';
+      html += '</div>';
+      html += '<div class="match-card-body">';
+      html += '<div class="match-card-date">';
+      html += '<div class="match-card-day">' + parseInt(nextMatch.date.split("-")[2], 10) + '</div>';
+      html += '<div class="match-card-month">' + monthNames[parseInt(nextMatch.date.split("-")[1], 10) - 1] + '</div>';
+      html += '</div>';
+      html += '<div class="match-card-info">';
+      html += '<div class="match-hero-opponent"' + (r ? ' style="display:none"' : "") + '>' + nextMatch.opponent.toUpperCase() + '</div>';
+      if (r) {
+        var oppUpper = nextMatch.opponent.toUpperCase();
+        var resultText = nextMatch.venue === "local"
+          ? "RAYO " + r.ourGoals + " - " + r.theirGoals + " " + oppUpper
+          : oppUpper + " " + r.theirGoals + " - " + r.ourGoals + " RAYO";
+        html += '<div class="match-card-result">' + resultText + '</div>';
+      }
+      html += '<div class="match-hero-meta">';
+      html += '<span class="match-badge match-badge-venue">' + getVenueLabel(nextMatch.venue) + '</span>';
+      html += '<span class="match-badge match-badge-type">' + formatMatchDate(nextMatch.date, nextMatch.time) + '</span>';
+      if (nextMatch.field) {
+        html += '<span class="match-badge match-badge-type">' + escapeHtml(nextMatch.field) + '</span>';
+      }
+      var cu = nextMatch.callUps || [];
+      html += '<span class="match-badge match-badge-venue">' + getCallUpDisplay(cu, nextMatch) + '</span>';
+      var formStr = nextMatch.lineup ? getFormationStr(nextMatch) : "";
+      if (formStr) {
+        html += '<span class="match-badge match-badge-type">' + formStr + '</span>';
+      }
+      var cards = nextMatch.cards || [];
+      var yc = 0, rc = 0;
+      for (var ci = 0; ci < cards.length; ci++) {
+        if (cards[ci].type === "yellow") yc++;
+        else rc++;
+      }
+      if (yc > 0) html += '<span class="match-badge match-badge-type">\uD83D\uDFE8 ' + yc + '</span>';
+      if (rc > 0) html += '<span class="match-badge match-badge-type">\uD83D\uDFE5 ' + rc + '</span>';
+      html += '</div>';
+      html += '</div></div>';
+      html += '</div>';
     }
-    html += "</div>";
+    var pastMatches = [];
+    for (var pm = 0; pm < sorted.length; pm++) {
+      if (sorted[pm].date < todayStr) pastMatches.push(sorted[pm]);
+    }
+    if (pastMatches.length > 0) {
+      pastMatches.sort(function (a, b) { return b.date.localeCompare(a.date) || (b.time || "").localeCompare(a.time || ""); });
+      html += '<div class="position-section" style="margin-top:16px">';
+      html += '<div class="position-header"><span class="position-name">PARTIDOS JUGADOS</span><span class="position-count">' + pastMatches.length + '</span></div>';
+      html += '<div class="position-cards">';
+      for (var pm = 0; pm < pastMatches.length; pm++) {
+        var pmr = pastMatches[pm].result;
+        html += '<div class="match-card' + (pmr ? (pmr.ourGoals > pmr.theirGoals ? " match-win" : pmr.ourGoals < pmr.theirGoals ? " match-loss" : " match-draw") : "") + '">';
+        html += '<div class="match-card-top">';
+        html += '<div class="match-hero-label">' + getTypeLabel(pastMatches[pm].type).toUpperCase() + ": J" + (pastMatches[pm].jornada || "?") + '</div>';
+        html += '</div>';
+        html += '<div class="match-card-body">';
+        html += '<div class="match-card-date">';
+        html += '<div class="match-card-day">' + parseInt(pastMatches[pm].date.split("-")[2], 10) + '</div>';
+        html += '<div class="match-card-month">' + monthNames[parseInt(pastMatches[pm].date.split("-")[1], 10) - 1] + '</div>';
+        html += '</div>';
+        html += '<div class="match-card-info">';
+        html += '<div class="match-hero-opponent"' + (pmr ? ' style="display:none"' : "") + '>' + pastMatches[pm].opponent.toUpperCase() + '</div>';
+        if (pmr) {
+          var pOppUpper = pastMatches[pm].opponent.toUpperCase();
+          var pResultText = pastMatches[pm].venue === "local"
+            ? "RAYO " + pmr.ourGoals + " - " + pmr.theirGoals + " " + pOppUpper
+            : pOppUpper + " " + pmr.theirGoals + " - " + pmr.ourGoals + " RAYO";
+          html += '<div class="match-card-result">' + pResultText + '</div>';
+        }
+        html += '<div class="match-hero-meta">';
+        html += '<span class="match-badge match-badge-venue">' + getVenueLabel(pastMatches[pm].venue) + '</span>';
+        html += '<span class="match-badge match-badge-type">' + formatMatchDate(pastMatches[pm].date, pastMatches[pm].time) + '</span>';
+        if (pastMatches[pm].field) {
+          html += '<span class="match-badge match-badge-type">' + escapeHtml(pastMatches[pm].field) + '</span>';
+        }
+        var pcu = pastMatches[pm].callUps || [];
+        html += '<span class="match-badge match-badge-venue">' + getCallUpDisplay(pcu, pastMatches[pm]) + '</span>';
+        var pFormStr = pastMatches[pm].lineup ? getFormationStr(pastMatches[pm]) : "";
+        if (pFormStr) {
+          html += '<span class="match-badge match-badge-type">' + pFormStr + '</span>';
+        }
+        var pCards = pastMatches[pm].cards || [];
+        var pyc = 0, prc = 0;
+        for (var pci = 0; pci < pCards.length; pci++) {
+          if (pCards[pci].type === "yellow") pyc++;
+          else prc++;
+        }
+        if (pyc > 0) html += '<span class="match-badge match-badge-type">\uD83D\uDFE8 ' + pyc + '</span>';
+        if (prc > 0) html += '<span class="match-badge match-badge-type">\uD83D\uDFE5 ' + prc + '</span>';
+        html += '</div>';
+        html += '</div></div></div>';
+      }
+      html += '</div></div>';
+    }
     content.innerHTML = html;
     var btns = content.querySelectorAll(".player-status-btn");
     for (var b = 0; b < btns.length; b++) {
       (function (btn) {
         btn.addEventListener("click", function () {
           var ns = btn.dataset.status;
-          if (player.status === ns) return;
-          player.status = ns;
+          var p = null;
+          for (var i = 0; i < players.length; i++) {
+            if (players[i].email === currentUserEmail) { p = players[i]; break; }
+          }
+          if (!p || p.status === ns) return;
+          p.status = ns;
           saveToStorage();
-          showPlayerSeasonView(player);
+          showPlayerSeasonView(p);
           var label = STATUS_CONFIG[ns] ? STATUS_CONFIG[ns].label : ns;
           showToast("Estado actualizado: " + label, "success");
         });
@@ -707,6 +846,99 @@
   }
 
   function openHelpModal() {
+    var level = getCurrentUserAccessLevel();
+    var hc = document.getElementById("helpContent");
+    if (level === "limited") {
+      hc.innerHTML = '<section style="margin-top:0">'
+        + '<h3 style="margin-top:0">1. Acceso a la aplicaci\u00F3n</h3>'
+        + '<p>Abre la app en tu navegador: <strong>https://rocabits.github.io/rayo</strong></p>'
+        + '<p>Pulsa el bot\u00F3n <strong>"Iniciar sesi\u00F3n"</strong> con el icono de Google e inicia sesi\u00F3n con tu cuenta de Google autorizada.</p>'
+        + '</section>'
+        + '<section>'
+        + '<h3>2. Tu estado</h3>'
+        + '<p>Justo encima del pr\u00F3ximo partido ver\u00E1s 3 botones para indicar tu disponibilidad:</p>'
+        + '<ul>'
+        + '<li><strong>\u2705 Disponible</strong> &mdash; puedes jugar el pr\u00F3ximo partido</li>'
+        + '<li><strong>\uD83D\uDEAB No disponible</strong> &mdash; no puedes jugar</li>'
+        + '<li><strong>\uD83E\uDD15 Lesionado</strong> &mdash; est\u00E1s lesionado</li>'
+        + '</ul>'
+        + '<p>Pulsa el bot\u00F3n que corresponda a tu situaci\u00F3n actual. El entrenador ver\u00E1 tu estado actualizado al instante.</p>'
+        + '<p>Si el entrenador te ha puesto como <strong>Sancionado</strong>, no podr\u00E1s cambiar tu estado manualmente.</p>'
+        + '</section>'
+        + '<section>'
+        + '<h3>3. Pr\u00F3ximo partido</h3>'
+        + '<p>La tarjeta de "PR\u00D3XIMO PARTIDO" te muestra el rival, la fecha, el campo y otros detalles del pr\u00F3ximo encuentro.</p>'
+        + '</section>'
+        + '<section style="margin-bottom:24px">'
+        + '<h3>4. Hist\u00F3rico de partidos</h3>'
+        + '<p>M\u00E1s abajo ver\u00E1s la secci\u00F3n "PARTIDOS JUGADOS" con todos los partidos de la temporada, ordenados del m\u00E1s reciente al m\u00E1s antiguo.</p>'
+        + '<p>Puedes consultar los resultados, la alineaci\u00F3n, convocados y tarjetas de cada partido.</p>'
+        + '</section>';
+    } else {
+      hc.innerHTML = '<section style="margin-top:0">'
+        + '<h3 style="margin-top:0">1. Acceso a la aplicaci\u00F3n</h3>'
+        + '<p>Abre la app en tu navegador: <strong>https://rocabits.github.io/rayo</strong></p>'
+        + '<p>Pulsa el bot\u00F3n <strong>"Iniciar sesi\u00F3n"</strong> con el icono de Google e inicia sesi\u00F3n con tu cuenta de Google autorizada por el administrador.</p>'
+        + '</section>'
+        + '<section><h3>2. Temporadas</h3>'
+        + '<p>Al entrar ver\u00E1s la lista de temporadas disponibles. Cada tarjeta muestra el nombre y el n\u00FAmero de jugadores y partidos.</p>'
+        + '<ul><li><strong>Entrar:</strong> pulsa sobre la tarjeta de la temporada.</li>'
+        + '<li><strong>Crear nueva:</strong> pulsa el bot\u00F3n verde <strong>+</strong> (abajo a la derecha). La nueva temporada copiar\u00E1 los jugadores de la actual.</li>'
+        + '<li><strong>Eliminar:</strong> pulsa el icono de la papelera en la tarjeta y confirma.</li></ul>'
+        + '</section>'
+        + '<section><h3>3. Men\u00FA de temporada</h3>'
+        + '<p>Al entrar en una temporada ver\u00E1s 3 tarjetas:</p>'
+        + '<ul><li><strong>Plantilla</strong> &mdash; gestiona los jugadores</li>'
+        + '<li><strong>Calendario</strong> &mdash; gestiona los partidos</li>'
+        + '<li><strong>Estad\u00EDsticas</strong> &mdash; consulta datos de la temporada</li></ul>'
+        + '<p>Usa la <strong>flecha de retroceso</strong> del encabezado para volver atr\u00E1s.</p>'
+        + '</section>'
+        + '<section><h3>4. Plantilla (jugadores)</h3>'
+        + '<p>Los jugadores se muestran agrupados por posici\u00F3n: Porteros, Defensas, Medios, Delanteros, Entrenadores y Delegados. Arriba hay un resumen de disponibilidad.</p>'
+        + '<p><strong>Cada tarjeta muestra:</strong> dorsal, nombre, posici\u00F3n, estado, pagado y botones de editar/eliminar.</p>'
+        + '<p><strong>A\u00F1adir jugador:</strong> pulsa el bot\u00F3n <strong>+</strong> verde. Rellena nombre, posici\u00F3n, dorsal, estado (disponible / no disponible / lesionado / sancionado), pagado y notas. Guarda con el icono del <strong>disquete</strong> en el encabezado.</p>'
+        + '<p><strong>Editar:</strong> pulsa el l\u00E1piz en la tarjeta. <strong>Eliminar:</strong> pulsa la papelera y confirma.</p>'
+        + '</section>'
+        + '<section><h3>5. Calendario (partidos)</h3>'
+        + '<p>Los partidos aparecen ordenados por jornada. El <strong>pr\u00F3ximo partido</strong> se destaca en una tarjeta especial. Los dem\u00E1s aparecen agrupados por tipo (LIGA, COPA, AMISTOSOS).</p>'
+        + '<p>Acciones disponibles en cada tarjeta:</p>'
+        + '<ul><li><strong>Resultado:</strong> registrar o editar el marcador, goles, tarjetas y cambios</li>'
+        + '<li><strong>Alineaci\u00F3n:</strong> configurar la formaci\u00F3n titular</li>'
+        + '<li><strong>Convocatoria:</strong> gestionar los jugadores convocados</li>'
+        + '<li><strong>Editar:</strong> modificar los datos del partido</li>'
+        + '<li><strong>Eliminar:</strong> borrar el partido</li></ul>'
+        + '<p><strong>A\u00F1adir partido:</strong> pulsa <strong>+</strong>. Rellena fecha, hora, rival, local/visitante, tipo, jornada (se asigna autom\u00E1ticamente), campo y notas.</p>'
+        + '</section>'
+        + '<section><h3>5.1 Convocatoria</h3>'
+        + '<p>Pulsa el icono de personas en la tarjeta. Ver\u00E1s los jugadores disponibles agrupados por posici\u00F3n. Cada uno tiene un pulsador para convocarlo o no.</p>'
+        + '<ul><li><strong>L\u00EDmite:</strong> Liga/Copa m\u00E1ximo 17. Amistosos sin l\u00EDmite.</li>'
+        + '<li><strong>Acciones:</strong> Seleccionar todos, Deseleccionar todos, Resetear.</li>'
+        + '<li><strong>Copiar:</strong> pulsa el icono <strong>\uD83D\uDCCB</strong> para copiar rival, fecha, hora, campo y lista de convocados al portapapeles.</li>'
+        + '<li>Guarda con el icono del <strong>disquete</strong>.</li></ul>'
+        + '</section>'
+        + '<section><h3>5.2 Alineaci\u00F3n</h3>'
+        + '<p>Pulsa el icono de cuadr\u00EDcula. Ver\u00E1s un campo de f\u00FAtbol con las filas: DELANTEROS, MEDIOS, DEFENSAS, PORTERO.</p>'
+        + '<ul><li>Ajusta la formaci\u00F3n con los controles + y - (m\u00E1ximo 11 jugadores).</li>'
+        + '<li>Pulsa un hueco vac\u00EDo para elegir jugador.</li>'
+        + '<li>Pulsa un jugador colocado para quitarlo.</li>'
+        + '<li><strong>Resetear</strong> vuelve a 4-4-2.</li>'
+        + '<li>Guarda con el <strong>disquete</strong>.</li></ul>'
+        + '</section>'
+        + '<section><h3>5.3 Resultado</h3>'
+        + '<p>Pulsa el icono de medalla. Registra:</p>'
+        + '<ul><li><strong>Marcador:</strong> goles de RAYO y del rival (pulsadores + y -).</li>'
+        + '<li><strong>Goles:</strong> a\u00F1ade filas con jugador, asistente y minuto.</li>'
+        + '<li><strong>Tarjetas:</strong> elige tipo (amarilla / amarilla innecesaria / roja / roja innecesaria), jugador y minuto.</li>'
+        + '<li><strong>Cambios:</strong> jugador que sale, jugador que entra y minuto.</li>'
+        + '<li><strong>Resetear:</strong> borra todo el resultado.</li>'
+        + '<li>Guarda con el <strong>disquete</strong>.</li></ul>'
+        + '</section>'
+        + '<section style="margin-bottom:24px"><h3>6. Estad\u00EDsticas</h3>'
+        + '<p>Filtra por tipo de partido: <strong>TOTALES / LIGA / COPA / AMISTOSOS</strong>.</p>'
+        + '<p><strong>Tarjeta de equipo:</strong> PJ, G, E, P, GF, GC, Pts.</p>'
+        + '<p><strong>Tabla de jugadores:</strong> PJ, resultados, minutos, goles, asistencias, tarjetas. Pulsa cualquier cabecera para ordenar.</p>'
+        + '</section>';
+    }
     document.getElementById("modalHelp").classList.add("open");
     document.body.style.overflow = "hidden";
   }
@@ -834,13 +1066,6 @@
       paidBadge.textContent = "✗ No pagado";
     }
     infoDiv.appendChild(paidBadge);
-
-    if (player.email) {
-      var emailBadge = document.createElement("span");
-      emailBadge.className = "player-email-badge";
-      emailBadge.textContent = "📧";
-      infoDiv.appendChild(emailBadge);
-    }
 
     var editBtn = document.createElement("button");
     editBtn.className = "btn-edit";
@@ -2490,7 +2715,7 @@
     document.getElementById("btnGoogleLogin").addEventListener("click", handleGoogleLogin);
 
     document.querySelector(".header-logo-btn").addEventListener("click", function () {
-      if (currentUserEmail === "roca.jlr@gmail.com") {
+      if (currentUserIsSuperuser) {
         showUsuarios();
       }
     });
@@ -2755,6 +2980,15 @@
       } else if (e.target.closest(".btn-edit")) {
         var email = e.target.closest(".btn-edit").dataset.email;
         if (email) openUsuarioModal(email);
+      } else if (e.target.closest(".btn-copy")) {
+        var email = e.target.closest(".btn-copy").dataset.email;
+        if (email) {
+          navigator.clipboard.writeText(email).then(function () {
+            showToast("Email copiado", "success");
+          }).catch(function () {
+            showToast("Error al copiar", "error");
+          });
+        }
       }
     });
 

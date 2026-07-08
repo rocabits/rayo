@@ -253,38 +253,7 @@ main {
   padding: 8px 0;
 }
 
-.player-status-row {
-  display: flex;
-  gap: 10px;
-  padding: 16px 0;
-  flex-wrap: wrap;
-}
 
-.player-status-btn {
-  flex: 1;
-  min-width: 120px;
-  padding: 12px 10px;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .15s;
-  text-align: center;
-  background: #f5f5f5;
-  color: #666;
-}
-
-.player-status-btn:hover {
-  border-color: #2ecc71;
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.player-status-btn.active {
-  border-color: #2ecc71;
-  box-shadow: 0 0 0 2px rgba(46, 204, 113, .2);
-}
 
 /* PLAYER SECTIONS */
 .players-list {
@@ -618,6 +587,55 @@ main {
 .btn-result:focus-visible {
   background: var(--primary-light);
   color: var(--primary-dark);
+}
+
+.btn-status {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.player-status-row {
+  display: flex;
+  gap: 10px;
+  padding: 0 0 16px;
+  flex-wrap: wrap;
+}
+
+.player-status-btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 12px 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+  background: #f5f5f5;
+  color: #666;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.player-status-btn:hover {
+  border-color: #2ecc71;
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.player-status-btn.active {
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, .2);
 }
 
 /* RESULT MODAL */
@@ -2019,7 +2037,8 @@ main {
 }
 
 /* EDIT BUTTON */
-.btn-edit {
+.btn-edit,
+.btn-copy {
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -2039,6 +2058,12 @@ main {
 .btn-edit:focus-visible {
   background: var(--primary-light);
   color: var(--primary-dark);
+}
+
+.btn-copy:hover,
+.btn-copy:focus-visible {
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 /* TOAST */

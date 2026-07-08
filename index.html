@@ -10,7 +10,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%232ecc71'/%3E%3Cpath d='M54 8L17 58h29l-4 34L83 42h-29Z' fill='white'/%3E%3C/svg%3E" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
   <title>RAYO</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3">
   <script src="config.js"></script>
 </head>
 <body>
@@ -204,6 +204,10 @@
           <input type="text" id="name" placeholder="Nombre del jugador" required autofocus>
         </div>
         <div class="form-group">
+          <label for="playerEmail">Email</label>
+          <input type="email" id="playerEmail" placeholder="Email del jugador">
+        </div>
+        <div class="form-group">
           <label for="position">Posición</label>
           <div class="select-wrap">
             <select id="position">
@@ -244,10 +248,6 @@
             <span class="toggle-label" id="paidLabel">No</span>
             <button type="button" class="form-toggle" id="paidToggle" aria-label="Pagado" role="switch" aria-checked="false"></button>
           </div>
-        </div>
-        <div class="form-group">
-          <label for="playerEmail">Email (opcional)</label>
-          <input type="email" id="playerEmail" placeholder="Email del jugador">
         </div>
         <div class="form-group">
           <label for="playerNotes">Comentarios</label>
@@ -603,99 +603,7 @@
           </button>
         </div>
       </div>
-      <div class="help-content" id="helpContent">
-        <section style="margin-top:0">
-          <h3 style="margin-top:0">1. Acceso a la aplicacion</h3>
-          <p>Abre la app en tu navegador: <strong>https://rocabits.github.io/rayo</strong></p>
-          <p>Pulsa el boton <strong>"Iniciar sesion"</strong> con el icono de Google e inicia sesion con tu cuenta de Google autorizada por el administrador.</p>
-        </section>
-
-        <section>
-          <h3>2. Temporadas</h3>
-          <p>Al entrar veras la lista de temporadas disponibles. Cada tarjeta muestra el nombre y el numero de jugadores y partidos.</p>
-          <ul>
-            <li><strong>Entrar:</strong> pulsa sobre la tarjeta de la temporada.</li>
-            <li><strong>Crear nueva:</strong> pulsa el boton verde <strong>+</strong> (abajo a la derecha). La nueva temporada copiara los jugadores de la actual.</li>
-            <li><strong>Eliminar:</strong> pulsa el icono de la papelera en la tarjeta y confirma.</li>
-          </ul>
-        </section>
-
-        <section>
-          <h3>3. Menu de temporada</h3>
-          <p>Al entrar en una temporada veras 3 tarjetas:</p>
-          <ul>
-            <li><strong>Plantilla</strong> &mdash; gestiona los jugadores</li>
-            <li><strong>Calendario</strong> &mdash; gestiona los partidos</li>
-            <li><strong>Estadisticas</strong> &mdash; consulta datos de la temporada</li>
-          </ul>
-          <p>Usa la <strong>flecha de retroceso</strong> del encabezado para volver atras.</p>
-        </section>
-
-        <section>
-          <h3>4. Plantilla (jugadores)</h3>
-          <p>Los jugadores se muestran agrupados por posicion: Porteros, Defensas, Medios, Delanteros, Entrenadores y Delegados. Arriba hay un resumen de disponibilidad.</p>
-          <p><strong>Cada tarjeta muestra:</strong> dorsal, nombre, posicion, estado, pagado y botones de editar/eliminar.</p>
-          <p><strong>Anadir jugador:</strong> pulsa el boton <strong>+</strong> verde. Rellena nombre, posicion, dorsal, estado (disponible / no disponible / lesionado / sancionado), pagado y notas. Guarda con el icono del <strong>disquete</strong> en el encabezado.</p>
-          <p><strong>Editar:</strong> pulsa el lapiz en la tarjeta. <strong>Eliminar:</strong> pulsa la papelera y confirma.</p>
-        </section>
-
-        <section>
-          <h3>5. Calendario (partidos)</h3>
-          <p>Los partidos aparecen ordenados por jornada. El <strong>proximo partido</strong> se destaca en una tarjeta especial. Los demas aparecen agrupados por tipo (LIGA, COPA, AMISTOSOS).</p>
-          <p>Acciones disponibles en cada tarjeta:</p>
-          <ul>
-            <li><strong>Resultado:</strong> registrar o editar el marcador, goles, tarjetas y cambios</li>
-            <li><strong>Alineacion:</strong> configurar la formacion titular</li>
-            <li><strong>Convocatoria:</strong> gestionar los jugadores convocados</li>
-            <li><strong>Editar:</strong> modificar los datos del partido</li>
-            <li><strong>Eliminar:</strong> borrar el partido</li>
-          </ul>
-          <p><strong>Anadir partido:</strong> pulsa <strong>+</strong>. Rellena fecha, hora, rival, local/visitante, tipo, jornada (se asigna automaticamente), campo y notas.</p>
-        </section>
-
-        <section>
-          <h3>5.1 Convocatoria</h3>
-          <p>Pulsa el icono de personas en la tarjeta. Veras los jugadores disponibles agrupados por posicion. Cada uno tiene un pulsador para convocarlo o no.</p>
-          <ul>
-            <li><strong>Limite:</strong> Liga/Copa maximo 17. Amistosos sin limite.</li>
-            <li><strong>Acciones:</strong> Seleccionar todos, Deseleccionar todos, Resetear.</li>
-            <li><strong>Copiar:</strong> pulsa el icono <strong>📋</strong> para copiar rival, fecha, hora, campo y lista de convocados al portapapeles.</li>
-            <li>Guarda con el icono del <strong>disquete</strong>.</li>
-          </ul>
-        </section>
-
-        <section>
-          <h3>5.2 Alineacion</h3>
-          <p>Pulsa el icono de cuadricula. Veras un campo de futbol con las filas: DELANTEROS, MEDIOS, DEFENSAS, PORTERO.</p>
-          <ul>
-            <li>Ajusta la formacion con los controles + y - (maximo 11 jugadores).</li>
-            <li>Pulsa un hueco vacio para elegir jugador.</li>
-            <li>Pulsa un jugador colocado para quitarlo.</li>
-            <li><strong>Resetear</strong> vuelve a 4-4-2.</li>
-            <li>Guarda con el <strong>disquete</strong>.</li>
-          </ul>
-        </section>
-
-        <section>
-          <h3>5.3 Resultado</h3>
-          <p>Pulsa el icono de medalla. Registra:</p>
-          <ul>
-            <li><strong>Marcador:</strong> goles de RAYO y del rival (pulsadores + y -).</li>
-            <li><strong>Goles:</strong> anyade filas con jugador, asistente y minuto.</li>
-            <li><strong>Tarjetas:</strong> elige tipo (amarilla / amarilla innecesaria / roja / roja innecesaria), jugador y minuto.</li>
-            <li><strong>Cambios:</strong> jugador que sale, jugador que entra y minuto.</li>
-            <li><strong>Resetear:</strong> borra todo el resultado.</li>
-            <li>Guarda con el <strong>disquete</strong>.</li>
-          </ul>
-        </section>
-
-        <section style="margin-bottom:24px">
-          <h3>6. Estadisticas</h3>
-          <p>Filtra por tipo de partido: <strong>TOTALES / LIGA / COPA / AMISTOSOS</strong>.</p>
-          <p><strong>Tarjeta de equipo:</strong> PJ, G, E, P, GF, GC, Pts.</p>
-          <p><strong>Tabla de jugadores:</strong> PJ, resultados, minutos, goles, asistencias, tarjetas. Pulsa cualquier cabecera para ordenar.</p>
-        </section>
-      </div>
+      <div class="help-content" id="helpContent"></div>
     </div>
   </div>
 
@@ -720,6 +628,6 @@
   <div class="overlay" id="overlayToast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="script.js"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>
