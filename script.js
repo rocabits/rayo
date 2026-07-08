@@ -598,6 +598,16 @@
     else if (view === "estadisticas") showEstadisticas();
   }
 
+  function openHelpModal() {
+    document.getElementById("modalHelp").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeHelpModal() {
+    document.getElementById("modalHelp").classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
   function handleBack() {
     if (currentView === "seasonMenu") {
       showSeasons();
@@ -2377,6 +2387,9 @@
 
     document.getElementById("modalUsuarioOverlay").addEventListener("click", closeUsuarioModal);
     document.getElementById("modalUsuarioClose").addEventListener("click", closeUsuarioModal);
+    document.getElementById("modalHelpOverlay").addEventListener("click", closeHelpModal);
+    document.getElementById("modalHelpClose").addEventListener("click", closeHelpModal);
+    document.getElementById("btnHelp").addEventListener("click", openHelpModal);
     document.getElementById("usuarioForm").addEventListener("submit", function (e) {
       e.preventDefault();
       saveUsuario();
@@ -2494,6 +2507,7 @@
         if (elements.modalPlayerPicker.classList.contains("open")) closePlayerPicker();
         if (elements.modalResult.classList.contains("open")) closeResultModal();
         if (document.getElementById("modalUsuario").classList.contains("open")) closeUsuarioModal();
+        if (document.getElementById("modalHelp").classList.contains("open")) closeHelpModal();
       }
     });
 
