@@ -1606,6 +1606,25 @@
     renderMatches();
   }
 
+  function copyCallUpToClipboard() {
+    var match = matches.find(function (m) { return m.id === callUpTargetMatchId; });
+    if (!match) return;
+    var called = players.filter(function (p) { return tempCallUps.indexOf(p.id) !== -1; });
+    var parts = match.date.split("-");
+    var dateStr = parts[2] + "/" + parts[1] + "/" + parts[0];
+    var lines = [];
+    lines.push("RAYO vs " + match.opponent.toUpperCase());
+    lines.push(dateStr + (match.time ? " " + match.time : ""));
+    lines.push(match.field || "");
+    lines.push("");
+    lines.push("Convocados:");
+    called.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    called.forEach(function (p) { lines.push(p.name); });
+    navigator.clipboard.writeText(lines.join("\n")).then(function () {
+      showToast("Convocatoria copiada", "success");
+    });
+  }
+
   /* ────── CONFIRM ────── */
 
   var confirmCallback = null;
@@ -2664,6 +2683,8 @@
       tempCallUps = [];
       renderCallUpList();
     });
+
+    document.getElementById("btnCopyCallUp").addEventListener("click", copyCallUpToClipboard);
 
     // stats table sorting
     var statsTable = document.getElementById("statsTable");
