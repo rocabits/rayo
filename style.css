@@ -1600,10 +1600,22 @@ main {
   -webkit-tap-highlight-color: transparent;
 }
 
+.fab-admin {
+  bottom: calc(96px + var(--safe-bottom));
+  background: #34495e;
+  box-shadow: 0 6px 24px rgba(52, 73, 94, 0.4);
+}
+
 .fab:hover,
 .fab:focus-visible {
   transform: scale(1.08);
   box-shadow: 0 8px 32px rgba(46, 204, 113, 0.5);
+}
+
+.fab-admin:hover,
+.fab-admin:focus-visible {
+  transform: scale(1.08);
+  box-shadow: 0 8px 32px rgba(52, 73, 94, 0.5);
 }
 
 .fab:active {
@@ -2329,6 +2341,10 @@ main {
   .fab {
     bottom: 32px;
     right: 32px;
+  }
+
+  .fab-admin {
+    bottom: 104px;
   }
 
   .season-card:hover {

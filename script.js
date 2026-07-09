@@ -55,6 +55,7 @@
     modalOverlay: document.getElementById("modalOverlay"),
     modalPanel: document.getElementById("modalPanel"),
     fabOpen: document.getElementById("fabOpen"),
+    fabAdmin: document.getElementById("fabAdmin"),
     modalClose: document.getElementById("modalClose"),
     playerForm: document.getElementById("playerForm"),
     nameInput: document.getElementById("name"),
@@ -384,6 +385,7 @@
     hideAllViews();
     elements.viewUsuarios.classList.add("active");
     elements.fabOpen.style.display = "flex";
+    elements.fabAdmin.style.display = "none";
     document.body.classList.add("fab-visible");
     renderUsuarios();
   }
@@ -587,40 +589,38 @@
     return "limited";
   }
 
+  function showPlayerHome() {
+    hideLogin();
+    document.body.classList.remove("limited");
+    elements.fabOpen.style.display = "none";
+    elements.fabAdmin.style.display = "none";
+    document.body.classList.remove("fab-visible");
+    var newest = null;
+    for (var si = 0; si < state.seasons.length; si++) {
+      var s = state.seasons[si];
+      if (!newest || s.name > newest.name) newest = s;
+    }
+    if (newest) {
+      setActiveSeason(newest.id);
+      var found = null;
+      for (var pi = 0; pi < players.length; pi++) {
+        if (players[pi].email === currentUserEmail) { found = players[pi]; break; }
+      }
+      showPlayerSeasonView(found);
+    } else {
+      showPlayerSeasonView(null);
+    }
+  }
+
   function showSeasons() {
     hideLogin();
     document.body.classList.remove("limited");
-    var accessLevel = getCurrentUserAccessLevel();
-    if (accessLevel === "limited") {
-      var newest = null;
-      for (var si = 0; si < state.seasons.length; si++) {
-        var s = state.seasons[si];
-        if (!newest || s.name > newest.name) newest = s;
-      }
-      if (newest) {
-        setActiveSeason(newest.id);
-        var found = null;
-        for (var pi = 0; pi < players.length; pi++) {
-          if (players[pi].email === currentUserEmail) { found = players[pi]; break; }
-        }
-        if (found) { showPlayerSeasonView(found); return; }
-      }
-      currentView = "seasons";
-      hideAllViews();
-      elements.viewSeasons.classList.add("active");
-      updateHeader(false, "RAYO", "");
-      elements.fabOpen.style.display = "none";
-      document.body.classList.remove("fab-visible");
-      document.body.classList.add("view-seasons");
-      document.body.classList.add("limited");
-      elements.seasonsGrid.innerHTML = '<div class="empty-state" style="padding:40px 24px"><p class="empty-title">Acceso restringido</p><p class="empty-sub">Tu usuario no est\u00E1 asignado a ning\u00FAn jugador. Pide al entrenador que te lo asigne.</p></div>';
-      return;
-    }
     currentView = "seasons";
     hideAllViews();
     elements.viewSeasons.classList.add("active");
-    updateHeader(false, "RAYO: Temporadas (" + state.seasons.length + ")", "");
+    updateHeader(true, "RAYO: Temporadas (" + state.seasons.length + ")", "");
     elements.fabOpen.style.display = "flex";
+    elements.fabAdmin.style.display = "none";
     document.body.classList.add("fab-visible");
     document.body.classList.add("view-seasons");
     renderSeasons();
@@ -634,6 +634,7 @@
     var activeSeason = getActiveSeason();
     updateHeader(true, "RAYO: " + (activeSeason ? activeSeason.name : ""), "");
     elements.fabOpen.style.display = "none";
+    elements.fabAdmin.style.display = "none";
     document.body.classList.remove("fab-visible");
   }
 
@@ -646,6 +647,12 @@
     updateHeader(false, "RAYO: " + (season ? season.name : ""), "");
     elements.fabOpen.style.display = "none";
     document.body.classList.remove("fab-visible");
+    if (getCurrentUserAccessLevel() === "full") {
+      elements.fabAdmin.style.display = "flex";
+      document.body.classList.add("fab-visible");
+    } else {
+      elements.fabAdmin.style.display = "none";
+    }
     var content = document.getElementById("playerSeasonContent");
     if (!player) {
       content.innerHTML = '<div class="empty-state" style="padding:40px 24px"><p class="empty-title">No est\u00E1s registrado</p><p class="empty-sub">No se ha encontrado un jugador con tu email en esta temporada</p></div>';
@@ -812,6 +819,7 @@
     elements.viewPlantilla.classList.add("active");
     updateHeader(true, "", "");
     elements.fabOpen.style.display = "flex";
+    elements.fabAdmin.style.display = "none";
     document.body.classList.add("fab-visible");
     renderPlayers();
   }
@@ -823,6 +831,7 @@
     elements.viewPartidos.classList.add("active");
     updateHeader(true, "", "");
     elements.fabOpen.style.display = "flex";
+    elements.fabAdmin.style.display = "none";
     document.body.classList.add("fab-visible");
     renderMatches();
   }
@@ -835,6 +844,7 @@
     var season = getActiveSeason();
     updateHeader(true, "RAYO: " + season.name + ": Estadísticas", "");
     elements.fabOpen.style.display = "none";
+    elements.fabAdmin.style.display = "none";
     document.body.classList.remove("fab-visible");
     renderEstadisticas();
   }
@@ -949,8 +959,12 @@
   }
 
   function handleBack() {
-    if (currentView === "seasonMenu" || currentView === "playerSeason") {
+    if (currentView === "playerSeason") {
+      showPlayerHome();
+    } else if (currentView === "seasonMenu") {
       showSeasons();
+    } else if (currentView === "seasons") {
+      showPlayerHome();
     } else if (currentView === "plantilla" || currentView === "partidos" || currentView === "estadisticas") {
       showSeasonMenu();
     } else if (currentView === "usuarios") {
@@ -2720,6 +2734,9 @@
       }
     });
 
+    elements.fabAdmin.addEventListener("click", function () {
+      showSeasons();
+    });
     elements.fabOpen.addEventListener("click", function () {
       if (currentView === "plantilla") openModal(null);
       else if (currentView === "partidos") openMatchModal(null);
@@ -3109,7 +3126,7 @@
           migrateJornada();
           supabaseSubscribe();
           setupEventListeners();
-          showSeasons();
+          showPlayerHome();
           registerSW();
         });
       } else {
