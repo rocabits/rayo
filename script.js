@@ -1083,6 +1083,13 @@
     infoDiv.appendChild(nameDiv);
     infoDiv.appendChild(posDiv);
 
+    if (player.email) {
+      var emailDiv = document.createElement("div");
+      emailDiv.className = "player-email";
+      emailDiv.textContent = player.email;
+      infoDiv.appendChild(emailDiv);
+    }
+
     var sc = STATUS_CONFIG[player.status] || STATUS_CONFIG.disponible;
     var badge = document.createElement("span");
     badge.className = "player-status-badge";

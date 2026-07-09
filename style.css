@@ -359,8 +359,18 @@ main {
 }
 
 .player-position.empty {
-  color: var(--text-light);
+  color: var(--text-secondary);
   font-style: italic;
+}
+
+.player-email {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  margin-top: 2px;
 }
 
 .btn-delete {
