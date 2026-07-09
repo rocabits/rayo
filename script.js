@@ -55,7 +55,19 @@
     modalOverlay: document.getElementById("modalOverlay"),
     modalPanel: document.getElementById("modalPanel"),
     fabOpen: document.getElementById("fabOpen"),
-    fabAdmin: document.getElementById("fabAdmin"),
+    fabAdmin: (function () {
+      var el = document.getElementById("fabAdmin");
+      if (!el) {
+        console.log("fabAdmin no encontrado en HTML, creando dinámicamente");
+        el = document.createElement("button");
+        el.id = "fabAdmin";
+        el.className = "fab";
+        el.setAttribute("aria-label", "Gestión");
+        el.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>';
+        document.body.appendChild(el);
+      }
+      return el;
+    })(),
     modalClose: document.getElementById("modalClose"),
     playerForm: document.getElementById("playerForm"),
     nameInput: document.getElementById("name"),
@@ -304,6 +316,7 @@
     elements.viewLogin.classList.remove("active");
     elements.viewUsuarios.classList.remove("active");
     elements.viewPlayerSeason.classList.remove("active");
+    document.body.classList.remove("view-player");
   }
 
   /* ────── AUTH ────── */
@@ -332,33 +345,38 @@
     return supabaseClient.auth.getSession().then(function (result) {
       var session = result.data ? result.data.session : null;
       if (!session) return null;
-      return supabaseClient.from('allowed_emails').select('email, app_id').eq('email', session.user.email).then(function (res) {
-        if (res.data && res.data.length > 0) {
-          var hasAccess = false;
-          var foundAll = false;
-          for (var i = 0; i < res.data.length; i++) {
-            if (res.data[i].app_id === 'rayo') hasAccess = true;
-            if (res.data[i].app_id === 'all') { hasAccess = true; foundAll = true; }
+      function checkAccess(retries) {
+        return supabaseClient.from('allowed_emails').select('email, app_id').eq('email', session.user.email).then(function (res) {
+          if (res.data && res.data.length > 0) {
+            var hasAccess = false;
+            var foundAll = false;
+            for (var i = 0; i < res.data.length; i++) {
+              if (res.data[i].app_id === 'rayo') hasAccess = true;
+              if (res.data[i].app_id === 'all') { hasAccess = true; foundAll = true; }
+            }
+            if (hasAccess) {
+              currentUserEmail = session.user.email;
+              currentUserIsSuperuser = foundAll;
+              return session.user.email;
+            }
           }
-          if (hasAccess) {
+          if (res.error && retries > 0) {
+            return checkAccess(retries - 1);
+          }
+          if (res.error) {
             currentUserEmail = session.user.email;
-            currentUserIsSuperuser = foundAll;
             return session.user.email;
           }
-        }
-        if (res.error) {
+          supabaseClient.auth.signOut();
+          showToast('No tienes permiso para acceder', 'error');
+          return null;
+        }).catch(function () {
+          if (retries > 0) return checkAccess(retries - 1);
           currentUserEmail = session.user.email;
-          currentUserIsSuperuser = false;
           return session.user.email;
-        }
-        supabaseClient.auth.signOut();
-        showToast('No tienes permiso para acceder', 'error');
-        return null;
-      }).catch(function () {
-        currentUserEmail = session.user.email;
-        currentUserIsSuperuser = false;
-        return session.user.email;
-      });
+        });
+      }
+      return checkAccess(3);
     }).catch(function () {
       return null;
     });
@@ -385,7 +403,7 @@
     hideAllViews();
     elements.viewUsuarios.classList.add("active");
     elements.fabOpen.style.display = "flex";
-    elements.fabAdmin.style.display = "none";
+    if (elements.fabAdmin) elements.fabAdmin.style.display = "none";
     document.body.classList.add("fab-visible");
     renderUsuarios();
   }
@@ -572,17 +590,15 @@
 
   function getCurrentUserAccessLevel() {
     if (currentUserIsSuperuser) return "full";
-    var newest = null;
     for (var si = 0; si < state.seasons.length; si++) {
       var s = state.seasons[si];
-      if (!newest || s.name > newest.name) newest = s;
-    }
-    if (newest && newest.players) {
-      for (var pi = 0; pi < newest.players.length; pi++) {
-        var p = newest.players[pi];
-        if (p.email === currentUserEmail) {
-          if (p.position === "Entrenador" || p.position === "Delegado") return "full";
-          return "limited";
+      if (s && s.players) {
+        for (var pi = 0; pi < s.players.length; pi++) {
+          var p = s.players[pi];
+          if (p.email === currentUserEmail) {
+            if (p.position === "Entrenador" || p.position === "Delegado") return "full";
+            return "limited";
+          }
         }
       }
     }
@@ -593,7 +609,7 @@
     hideLogin();
     document.body.classList.remove("limited");
     elements.fabOpen.style.display = "none";
-    elements.fabAdmin.style.display = "none";
+    if (elements.fabAdmin) elements.fabAdmin.style.display = "none";
     document.body.classList.remove("fab-visible");
     var newest = null;
     for (var si = 0; si < state.seasons.length; si++) {
@@ -620,7 +636,7 @@
     elements.viewSeasons.classList.add("active");
     updateHeader(true, "RAYO: Temporadas (" + state.seasons.length + ")", "");
     elements.fabOpen.style.display = "flex";
-    elements.fabAdmin.style.display = "none";
+    if (elements.fabAdmin) elements.fabAdmin.style.display = "none";
     document.body.classList.add("fab-visible");
     document.body.classList.add("view-seasons");
     renderSeasons();
@@ -634,7 +650,7 @@
     var activeSeason = getActiveSeason();
     updateHeader(true, "RAYO: " + (activeSeason ? activeSeason.name : ""), "");
     elements.fabOpen.style.display = "none";
-    elements.fabAdmin.style.display = "none";
+    if (elements.fabAdmin) elements.fabAdmin.style.display = "none";
     document.body.classList.remove("fab-visible");
   }
 
@@ -643,15 +659,18 @@
     hideAllViews();
     elements.viewPlayerSeason.classList.add("active");
     document.body.classList.add("view-seasons");
+    document.body.classList.add("view-player");
     var season = getActiveSeason();
     updateHeader(false, "RAYO: " + (season ? season.name : ""), "");
     elements.fabOpen.style.display = "none";
     document.body.classList.remove("fab-visible");
-    if (getCurrentUserAccessLevel() === "full") {
-      elements.fabAdmin.style.display = "flex";
+    var accessLevel = getCurrentUserAccessLevel();
+    console.log("showPlayerSeasonView: accessLevel=" + accessLevel + ", fabAdmin=" + (elements.fabAdmin ? "exists" : "null"));
+    if (accessLevel === "full") {
+      if (elements.fabAdmin) elements.fabAdmin.style.display = "flex";
       document.body.classList.add("fab-visible");
     } else {
-      elements.fabAdmin.style.display = "none";
+      if (elements.fabAdmin) elements.fabAdmin.style.display = "none";
     }
     var content = document.getElementById("playerSeasonContent");
     if (!player) {
@@ -661,7 +680,7 @@
     var canEditStatus = player.status !== "sancionado";
     var today = new Date();
     today.setHours(0, 0, 0, 0);
-    var todayStr = today.toISOString().slice(0, 10);
+    var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     var sorted = matches.slice().sort(function (a, b) {
       return a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || "");
     });
@@ -819,7 +838,7 @@
     elements.viewPlantilla.classList.add("active");
     updateHeader(true, "", "");
     elements.fabOpen.style.display = "flex";
-    elements.fabAdmin.style.display = "none";
+    if (elements.fabAdmin) elements.fabAdmin.style.display = "none";
     document.body.classList.add("fab-visible");
     renderPlayers();
   }
@@ -831,7 +850,7 @@
     elements.viewPartidos.classList.add("active");
     updateHeader(true, "", "");
     elements.fabOpen.style.display = "flex";
-    elements.fabAdmin.style.display = "none";
+    if (elements.fabAdmin) elements.fabAdmin.style.display = "none";
     document.body.classList.add("fab-visible");
     renderMatches();
   }
@@ -844,7 +863,7 @@
     var season = getActiveSeason();
     updateHeader(true, "RAYO: " + season.name + ": Estadísticas", "");
     elements.fabOpen.style.display = "none";
-    elements.fabAdmin.style.display = "none";
+    if (elements.fabAdmin) elements.fabAdmin.style.display = "none";
     document.body.classList.remove("fab-visible");
     renderEstadisticas();
   }
@@ -889,12 +908,15 @@
         + '<h3 style="margin-top:0">1. Acceso a la aplicaci\u00F3n</h3>'
         + '<p>Abre la app en tu navegador: <strong>https://rocabits.github.io/rayo</strong></p>'
         + '<p>Pulsa el bot\u00F3n <strong>"Iniciar sesi\u00F3n"</strong> con el icono de Google e inicia sesi\u00F3n con tu cuenta de Google autorizada por el administrador.</p>'
+        + '<p>Al entrar ver\u00E1s la <strong>vista de jugador</strong> de la \u00FAltima temporada: tu estado, el pr\u00F3ximo partido y el hist\u00F3rico.</p>'
         + '</section>'
-        + '<section><h3>2. Temporadas</h3>'
-        + '<p>Al entrar ver\u00E1s la lista de temporadas disponibles. Cada tarjeta muestra el nombre y el n\u00FAmero de jugadores y partidos.</p>'
-        + '<ul><li><strong>Entrar:</strong> pulsa sobre la tarjeta de la temporada.</li>'
-        + '<li><strong>Crear nueva:</strong> pulsa el bot\u00F3n verde <strong>+</strong> (abajo a la derecha). La nueva temporada copiar\u00E1 los jugadores de la actual.</li>'
-        + '<li><strong>Eliminar:</strong> pulsa el icono de la papelera en la tarjeta y confirma.</li></ul>'
+        + '<section><h3>2. Gesti\u00F3n de temporadas</h3>'
+        + '<p>Para acceder a la gesti\u00F3n completa, pulsa el bot\u00F3n <strong>\u2699\uFE0F engranaje</strong> que aparece abajo a la derecha.</p>'
+        + '<p>Esto te lleva a la lista de temporadas donde puedes:</p>'
+        + '<ul><li><strong>Entrar</strong> en una temporada para gestionar plantilla, calendario y estad\u00EDsticas.</li>'
+        + '<li><strong>Crear nueva</strong> temporada pulsando el bot\u00F3n <strong>+</strong> verde. La nueva temporada copiar\u00E1 los jugadores de la actual.</li>'
+        + '<li><strong>Eliminar</strong> temporada pulsando la papelera y confirmando.</li></ul>'
+        + '<p>Usa la <strong>flecha de retroceso</strong> del encabezado para volver a la vista de jugador.</p>'
         + '</section>'
         + '<section><h3>3. Men\u00FA de temporada</h3>'
         + '<p>Al entrar en una temporada ver\u00E1s 3 tarjetas:</p>'
@@ -968,7 +990,7 @@
     } else if (currentView === "plantilla" || currentView === "partidos" || currentView === "estadisticas") {
       showSeasonMenu();
     } else if (currentView === "usuarios") {
-      showSeasons();
+      showPlayerHome();
     }
   }
 
@@ -1254,7 +1276,7 @@
 
     var today = new Date();
     today.setHours(0, 0, 0, 0);
-    var todayStr = today.toISOString().slice(0, 10);
+    var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 
     var nextIdx = -1;
     for (var i = 0; i < sorted.length; i++) {
@@ -1775,7 +1797,8 @@
       elements.matchModalTitle.textContent = "Nuevo partido";
       elements.matchForm.reset();
       elements.editMatchId.value = "";
-      var today = new Date().toISOString().slice(0, 10);
+      var d = new Date();
+      var today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
       elements.matchDate.value = today;
       elements.matchJornada.value = getNextJornada(elements.matchType.value, null);
       jornadaValue = null;
@@ -2734,9 +2757,11 @@
       }
     });
 
-    elements.fabAdmin.addEventListener("click", function () {
-      showSeasons();
-    });
+    if (elements.fabAdmin) {
+      elements.fabAdmin.addEventListener("click", function () {
+        showSeasons();
+      });
+    }
     elements.fabOpen.addEventListener("click", function () {
       if (currentView === "plantilla") openModal(null);
       else if (currentView === "partidos") openMatchModal(null);
