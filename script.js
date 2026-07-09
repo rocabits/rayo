@@ -590,20 +590,22 @@
 
   function getCurrentUserAccessLevel() {
     if (currentUserIsSuperuser) return "full";
+    var newest = null;
     for (var si = 0; si < state.seasons.length; si++) {
       var s = state.seasons[si];
-      if (s && s.players) {
-        for (var pi = 0; pi < s.players.length; pi++) {
-          var p = s.players[pi];
-          if (p.email) console.log("DEBUG accessLevel: player=" + p.name + ", email=" + p.email + ", position=" + p.position);
-          if (p.email === currentUserEmail) {
-            if (p.position === "Entrenador" || p.position === "Delegado") return "full";
-            return "limited";
-          }
+      if (!newest || s.name > newest.name) newest = s;
+    }
+    var foundLimited = false;
+    if (newest && newest.players) {
+      for (var pi = 0; pi < newest.players.length; pi++) {
+        var p = newest.players[pi];
+        if (p.email === currentUserEmail) {
+          if (p.position === "Entrenador" || p.position === "Delegado") return "full";
+          foundLimited = true;
         }
       }
     }
-    return "limited";
+    return foundLimited ? "limited" : "limited";
   }
 
   function showPlayerHome() {
@@ -665,9 +667,7 @@
     updateHeader(false, "RAYO: " + (season ? season.name : ""), "");
     elements.fabOpen.style.display = "none";
     document.body.classList.remove("fab-visible");
-    var accessLevel = getCurrentUserAccessLevel();
-    console.log("showPlayerSeasonView: accessLevel=" + accessLevel + ", fabAdmin=" + (elements.fabAdmin ? "exists" : "null") + ", email=" + currentUserEmail + ", seasons=" + state.seasons.length);
-    if (accessLevel === "full") {
+    if (getCurrentUserAccessLevel() === "full") {
       if (elements.fabAdmin) elements.fabAdmin.style.display = "flex";
       document.body.classList.add("fab-visible");
     } else {
