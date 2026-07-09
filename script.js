@@ -1080,15 +1080,19 @@
     posDiv.className = "player-position" + (player.position ? "" : " empty");
     posDiv.textContent = player.position || "Sin posición";
 
-    infoDiv.appendChild(nameDiv);
-    infoDiv.appendChild(posDiv);
+    var posRow = document.createElement("div");
+    posRow.className = "player-pos-row";
+    posRow.appendChild(posDiv);
 
     if (player.email) {
-      var emailDiv = document.createElement("div");
+      var emailDiv = document.createElement("span");
       emailDiv.className = "player-email";
       emailDiv.textContent = player.email;
-      infoDiv.appendChild(emailDiv);
+      posRow.appendChild(emailDiv);
     }
+
+    infoDiv.appendChild(nameDiv);
+    infoDiv.appendChild(posRow);
 
     var sc = STATUS_CONFIG[player.status] || STATUS_CONFIG.disponible;
     var badge = document.createElement("span");

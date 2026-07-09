@@ -363,14 +363,20 @@ main {
   font-style: italic;
 }
 
+.player-pos-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .player-email {
   font-size: 11px;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
-  margin-top: 2px;
+  max-width: 140px;
 }
 
 .btn-delete {
