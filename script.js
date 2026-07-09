@@ -1072,26 +1072,21 @@
     var infoDiv = document.createElement("div");
     infoDiv.className = "player-info";
 
-    var nameRow = document.createElement("div");
-    nameRow.className = "player-name-row";
-
-    var nameDiv = document.createElement("span");
+    var nameDiv = document.createElement("div");
     nameDiv.className = "player-name";
     nameDiv.textContent = player.name;
-    nameRow.appendChild(nameDiv);
+    infoDiv.appendChild(nameDiv);
 
     if (player.email) {
-      var emailSpan = document.createElement("span");
-      emailSpan.className = "player-email";
-      emailSpan.textContent = player.email;
-      nameRow.appendChild(emailSpan);
+      var emailDiv = document.createElement("div");
+      emailDiv.className = "player-email";
+      emailDiv.textContent = player.email;
+      infoDiv.appendChild(emailDiv);
     }
 
     var posDiv = document.createElement("div");
     posDiv.className = "player-position" + (player.position ? "" : " empty");
     posDiv.textContent = player.position || "Sin posición";
-
-    infoDiv.appendChild(nameRow);
     infoDiv.appendChild(posDiv);
 
     var sc = STATUS_CONFIG[player.status] || STATUS_CONFIG.disponible;

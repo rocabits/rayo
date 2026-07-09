@@ -344,17 +344,10 @@ main {
   min-width: 0;
 }
 
-.player-name-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 2px;
-  min-width: 0;
-}
-
 .player-name {
   font-size: 16px;
   font-weight: 600;
+  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -376,8 +369,8 @@ main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 140px;
-  flex-shrink: 0;
+  max-width: 180px;
+  margin-top: 2px;
 }
 
 .btn-delete {
