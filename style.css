@@ -344,10 +344,17 @@ main {
   min-width: 0;
 }
 
+.player-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+  min-width: 0;
+}
+
 .player-name {
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -363,13 +370,6 @@ main {
   font-style: italic;
 }
 
-.player-pos-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
 .player-email {
   font-size: 11px;
   color: var(--text-secondary);
@@ -377,6 +377,7 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 140px;
+  flex-shrink: 0;
 }
 
 .btn-delete {
