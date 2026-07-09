@@ -595,6 +595,7 @@
       if (s && s.players) {
         for (var pi = 0; pi < s.players.length; pi++) {
           var p = s.players[pi];
+          if (p.email) console.log("DEBUG accessLevel: player=" + p.name + ", email=" + p.email + ", position=" + p.position);
           if (p.email === currentUserEmail) {
             if (p.position === "Entrenador" || p.position === "Delegado") return "full";
             return "limited";
@@ -665,7 +666,7 @@
     elements.fabOpen.style.display = "none";
     document.body.classList.remove("fab-visible");
     var accessLevel = getCurrentUserAccessLevel();
-    console.log("showPlayerSeasonView: accessLevel=" + accessLevel + ", fabAdmin=" + (elements.fabAdmin ? "exists" : "null"));
+    console.log("showPlayerSeasonView: accessLevel=" + accessLevel + ", fabAdmin=" + (elements.fabAdmin ? "exists" : "null") + ", email=" + currentUserEmail + ", seasons=" + state.seasons.length);
     if (accessLevel === "full") {
       if (elements.fabAdmin) elements.fabAdmin.style.display = "flex";
       document.body.classList.add("fab-visible");
