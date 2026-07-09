@@ -1077,17 +1077,17 @@
     nameDiv.textContent = player.name;
     infoDiv.appendChild(nameDiv);
 
+    var posDiv = document.createElement("div");
+    posDiv.className = "player-position" + (player.position ? "" : " empty");
+    posDiv.textContent = player.position || "Sin posición";
+    infoDiv.appendChild(posDiv);
+
     if (player.email) {
       var emailDiv = document.createElement("div");
       emailDiv.className = "player-email";
       emailDiv.textContent = player.email;
       infoDiv.appendChild(emailDiv);
     }
-
-    var posDiv = document.createElement("div");
-    posDiv.className = "player-position" + (player.position ? "" : " empty");
-    posDiv.textContent = player.position || "Sin posición";
-    infoDiv.appendChild(posDiv);
 
     var sc = STATUS_CONFIG[player.status] || STATUS_CONFIG.disponible;
     var badge = document.createElement("span");
