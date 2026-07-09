@@ -189,8 +189,9 @@
           seasons: [],
           activeSeasonId: null
         };
+      } else {
+        saveToStorage();
       }
-      saveToStorage();
     }
     syncPlayers();
     syncMatches();
@@ -499,6 +500,7 @@
 
   function supabaseSave() {
     if (!supabaseClient || !currentUserEmail) return;
+    if (!state || !state.seasons || !state.seasons.length) return;
     var pending = localStorage.getItem('rayo_pending');
     if (pending) {
       clearTimeout(retryTimer);
@@ -535,6 +537,17 @@
     return supabaseClient.from('app_data').select('data').eq('app_id', 'rayo').maybeSingle().then(function (res) {
       if (res.data && res.data.data) {
         state = res.data.data;
+        if (!state.seasons || !state.seasons.length) {
+          var localRaw = localStorage.getItem(STORAGE_KEY);
+          if (localRaw) {
+            try {
+              var localState = JSON.parse(localRaw);
+              if (localState && localState.seasons && localState.seasons.length) {
+                state = localState;
+              }
+            } catch (e) {}
+          }
+        }
         syncPlayers();
         syncMatches();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -548,7 +561,9 @@
 
   function supabaseOnChange(payload) {
     if (!payload.new || !payload.new.data) return;
-    state = payload.new.data;
+    var incoming = payload.new.data;
+    if (!incoming.seasons || !incoming.seasons.length) return;
+    state = incoming;
     syncPlayers();
     syncMatches();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
