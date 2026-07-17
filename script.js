@@ -3155,7 +3155,24 @@
 
   function registerSW() {
     if ("serviceWorker" in navigator) {
-      window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+      navigator.serviceWorker.register("sw.js").then(function(reg) {
+        reg.addEventListener("updatefound", function() {
+          var nuevo = reg.installing;
+          nuevo.addEventListener("statechange", function() {
+            if (this.state === "installed" && navigator.serviceWorker.controller) {
+              showToast("Nueva versi\u00F3n disponible", "success");
+              this.postMessage({ action: "skipWaiting" });
+            }
+          });
+        });
+      }).catch(function() {});
+
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function() {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
     }
   }
 

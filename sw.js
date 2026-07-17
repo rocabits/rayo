@@ -1,4 +1,4 @@
-const CACHE_NAME = "rayo-v3";
+const CACHE_NAME = "rayo-v4";
 const ASSETS = [
   ".",
   "index.html",
@@ -31,19 +31,24 @@ self.addEventListener("activate", function (event) {
   self.clients.claim();
 });
 
-self.addEventListener("fetch", function (event) {
-  var url = new URL(event.request.url);
-  if (url.pathname === "/" || url.pathname === "/index.html") {
-    event.respondWith(
-      fetch(event.request).catch(function () {
-        return caches.match(event.request);
-      })
-    );
-  } else {
-    event.respondWith(
-      caches.match(event.request).then(function (cached) {
-        return cached || fetch(event.request);
-      })
-    );
+self.addEventListener("message", function (event) {
+  if (event.data && event.data.action === "skipWaiting") {
+    self.skipWaiting();
   }
+});
+
+self.addEventListener("fetch", function (event) {
+  event.respondWith(
+    fetch(event.request).then(function (response) {
+      if (response && response.status === 200) {
+        var clone = response.clone();
+        caches.open(CACHE_NAME).then(function (cache) {
+          cache.put(event.request, clone);
+        });
+      }
+      return response;
+    }).catch(function () {
+      return caches.match(event.request);
+    })
+  );
 });
